@@ -5,12 +5,24 @@
 
 Here are some ideas to get you started:
 
-- 🔭 I’m currently working on ...
-- 🌱 I’m currently learning ...
-- 👯 I’m looking to collaborate on ...
-- 🤔 I’m looking for help with ...
-- 💬 Ask me about ...
+- 🔭 I’m currently working on improving my design skills and a chrome extension for fun.
+- 🌱 I’m currently learning Spring boot and System Design.
+- 👯 I’m looking to collaborate on any interesting small side-project in javascript.
+- 🤔 I’m looking for help with understanding system design more.
+- 💬 Ask me about world, universe and Everything ;)
 - 📫 How to reach me: ...
 - 😄 Pronouns: ...
 - ⚡ Fun fact: ...
 -->
+
+- 🔭 I’m currently working on improving my design skills and a chrome extension for fun.
+- 🌱 I’m currently learning Spring boot and System Design
+- 👯 I’m looking to collaborate on any interesting small side-project in javascript
+- 🤔 I’m looking for help with understanding system design more.
+- 💬 Ask me about world, universe and Everything ;)
+
+![Abhinav's github stats](https://github-readme-stats.vercel.app/api?username=abhinav1602&show_icons=true&theme=radical)
+
+[![abhinav1602's wakatime stats](https://github-readme-stats.vercel.app/api/wakatime?username=@abhinav1602&show_icons=true&theme=radical)]
+
+[![Top Langs](https://github-readme-stats.vercel.app/api/top-langs/?username=abhinav1602&exclude_repo=basicPortfolio-abhinav1602&hide=css,html&show_icons=true&theme=radical)]
