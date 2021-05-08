@@ -5,7 +5,7 @@
 
 Here are some ideas to get you started:
 
-- 🔭 I’m currently working on improving my design skills and a chrome extension for fun.
+- 🔭 I’m currently working on a chatbot for a hackathon, improving my design skills and a chrome extension for fun.
 - 🌱 I’m currently learning Spring boot and System Design.
 - 👯 I’m looking to collaborate on any interesting small side-project in javascript.
 - 🤔 I’m looking for help with understanding system design more.
