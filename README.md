@@ -15,7 +15,7 @@ Here are some ideas to get you started:
 - ⚡ Fun fact: ...
 -->
 
-- 🔭 I’m currently working on improving my design skills and a chrome extension for fun.
+- 🔭 I’m currently working on improving my design skills, a chrome extension and a hackathon project for fun.
 - 🌱 I’m currently learning Spring boot and System Design
 - 👯 I’m looking to collaborate on any interesting small side-project in javascript
 - 🤔 I’m looking for help with understanding system design more.
@@ -26,3 +26,5 @@ Here are some ideas to get you started:
 [![abhinav1602's wakatime stats](https://github-readme-stats.vercel.app/api/wakatime?username=@abhinav1602&show_icons=true&theme=radical)]
 
 [![Top Langs](https://github-readme-stats.vercel.app/api/top-langs/?username=abhinav1602&exclude_repo=basicPortfolio-abhinav1602&hide=css,html&show_icons=true&theme=radical)]
+
+Trying to be productive but feeling lazy as usual, <a href="https://www.buymeacoffee.com/abhinav1602">help me with a coffee?</a> 😉
