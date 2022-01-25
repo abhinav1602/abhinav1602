@@ -5,8 +5,8 @@
 
 Here are some ideas to get you started:
 
-- 🔭 I’m currently working on a chatbot for a hackathon, improving my design skills and a chrome extension for fun.
-- 🌱 I’m currently learning Spring boot and System Design.
+- 🔭 Recently worked on a voice chatbot for a hackathon, improving my design skills and a utility chrome extension for fun.
+- 🌱 I’m currently learning SEO and pre-rendering.
 - 👯 I’m looking to collaborate on any interesting small side-project in javascript.
 - 🤔 I’m looking for help with understanding system design more.
 - 💬 Ask me about world, universe and Everything ;)
