@@ -15,10 +15,7 @@ Here are some ideas to get you started:
 - ⚡ Fun fact: ...
 -->
 
-- 🔭 I’m currently working on improving my design skills, a chrome extension and a hackathon project for fun.
-- 🌱 I’m currently learning Spring boot and System Design
-- 👯 I’m looking to collaborate on any interesting small side-project in javascript
-- 🤔 I’m looking for help with understanding system design more.
+- 🔭 I’m currently working on improving my design and SEO Skills.
 - 💬 Ask me about world, universe and Everything ;)
 
 ![Abhinav's github stats](https://github-readme-stats.vercel.app/api?username=abhinav1602&show_icons=true&theme=radical)
