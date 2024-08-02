@@ -15,10 +15,10 @@ Here are some ideas to get you started:
 - ⚡ Fun fact: ...
 -->
 
-- 🔭 I’m currently working on improving my design and SEO Skills.
+<!-- - 🔭 I’m currently working on improving my design and SEO Skills. -->
 - 💬 Ask me about world, universe and Everything ;)
 
-![Abhinav's github stats](https://github-readme-stats.vercel.app/api?username=abhinav1602&show_icons=true&theme=radical)
+<!-- ![Abhinav's github stats](https://github-readme-stats.vercel.app/api?username=abhinav1602&show_icons=true&theme=radical) -->
 
 [![abhinav1602's wakatime stats](https://github-readme-stats.vercel.app/api/wakatime?username=@abhinav1602&show_icons=true&theme=radical)]
 
