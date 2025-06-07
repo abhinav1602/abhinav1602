@@ -36,9 +36,26 @@ Here are some ideas to get you started:
   </tr>
 </table>
 
-![abhinav1602's github activity graph](https://github-readme-activity-graph.vercel.app/graph?username=abhinav1602&theme=radical)
+<img src="https://github-readme-activity-graph.vercel.app/graph?username=abhinav1602&theme=tokyonight" alt="My GitHub Activity Graph" width="100%" height="32%"/>
+
+<p align="center">
+  <img src="https://skillicons.dev/icons?i=java,go,js,nodejs,kubernetes,mongodb,python,django,docker,aws,git,github,vscode,linux&theme=dark" alt="My Skills"/>
+</p>
 
 
-Trying to be productive but feeling lazy as usual, <a href="https://www.buymeacoffee.com/abhinav1602">help me with a coffee?</a> 😉
+<br>
+
+<p align="center">
+  <img src="https://readme-jokes.vercel.app/api" alt="Random Dev Joke" width="400px"/>
+</p>
+
+<p align="center">
+  <img src="https://profile-counter.glitch.me/abhinav1602/count.svg" alt="Visitor Count"/>
+</p>
+
+
+Trying to be productive but feeling lazy as usual <a href='https://ko-fi.com/M4M8GNLRD' target='_blank' style="display:inline;margin-bottom:-10px;">
+  <img height='36' style='border:0px;height:45px;width:150px;' target='_blank' src='https://storage.ko-fi.com/cdn/kofi5.png?v=3' border='0' alt='Buy Me a Coffee at ko-fi.com' />
+</a>
+
 </br>
-<a href='https://ko-fi.com/M4M8GNLRD' target='_blank'><img height='36' style='border:0px;height:45px;width:150px' target='_blank' src='https://storage.ko-fi.com/cdn/kofi5.png?v=3' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
