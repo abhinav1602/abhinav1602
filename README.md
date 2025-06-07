@@ -20,9 +20,24 @@ Here are some ideas to get you started:
 
 <!-- ![Abhinav's github stats](https://github-readme-stats.vercel.app/api?username=abhinav1602&show_icons=true&theme=radical) -->
 
-[![abhinav1602's wakatime stats](https://github-readme-stats.vercel.app/api/wakatime?username=@abhinav1602&show_icons=true&theme=radical)]
+<!-- THEMES: dark, merko, gruvbox, tokyonight, onedark, cobalt, synthwave, highcontrast, dracula -->
+<table align="center">
+  <tr>
+    <td width="50%" valign="top">
+      <img src="https://github-readme-stats.vercel.app/api/wakatime?username=@abhinav1602&show_icons=true&title_color=007bff&text_color=ffffff&bg_color=1a1a1a&border_color=007bff&custom_title=My%20Coding%20Activity" alt="My Coding Activity" width="100%"/>
+    </td>
+    <td width="50%" valign="top">
+      <img src="https://github-readme-streak-stats.herokuapp.com/?user=abhinav1602&theme=radical&card_title=My%20GitHub%20Streak" alt="My GitHub Streak" width="100%" height="32%"/>
+      <br/>
+      <img src="https://github-readme-stats.vercel.app/api/top-langs/?username=abhinav1602&exclude_repo=basicPortfolio-abhinav1602&hide=css,html&show_icons=true&theme=tokyonight&custom_title=Top%20Languages%20Used" alt="Top Languages Used" width="100%" height="32%"/>
+      <br/>
+      <img src="https://github-readme-stats.vercel.app/api?username=abhinav1602&show_icons=true&hide_rank=true&custom_title=My%20GitHub%20Stats&theme=tokyonight" alt="My GitHub Stats" width="100%" height="32%"/>
+    </td>
+  </tr>
+</table>
 
-[![Top Langs](https://github-readme-stats.vercel.app/api/top-langs/?username=abhinav1602&exclude_repo=basicPortfolio-abhinav1602&hide=css,html&show_icons=true&theme=radical)]
+![abhinav1602's github activity graph](https://github-readme-activity-graph.vercel.app/graph?username=abhinav1602&theme=radical)
+
 
 Trying to be productive but feeling lazy as usual, <a href="https://www.buymeacoffee.com/abhinav1602">help me with a coffee?</a> 😉
 </br>
