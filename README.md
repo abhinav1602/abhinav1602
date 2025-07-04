@@ -42,7 +42,6 @@ Here are some ideas to get you started:
   <img src="https://skillicons.dev/icons?i=java,go,js,nodejs,kubernetes,mongodb,python,django,docker,aws,git,github,vscode,linux&theme=dark" alt="My Skills"/>
 </p>
 
-
 <br>
 
 Trying to be productive but feeling lazy as usual <a href='https://ko-fi.com/M4M8GNLRD' target='_blank' style="display:inline;margin-bottom:-10px;">
