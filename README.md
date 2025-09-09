@@ -24,7 +24,7 @@ Here are some ideas to get you started:
 <table align="center">
   <tr>
     <td width="50%" valign="top">
-      <img src="https://github-readme-stats.vercel.app/api/wakatime?username=@abhinav1602&show_icons=true&title_color=007bff&text_color=ffffff&bg_color=1a1a1a&border_color=007bff&custom_title=My%20Coding%20Activity" alt="My Coding Activity" width="100%"/>
+      <img src="https://github-readme-stats.vercel.app/api/wakatime?username=@abhinav1602&show_icons=true&title_color=007bff&text_color=ffffff&bg_color=1a1a1a&border_color=007bff&custom_title=My%20Coding%20Activity" alt="My Coding Activity on Github" width="100%"/>
     </td>
     <td width="50%" valign="top">
       <img src="https://github-readme-streak-stats.herokuapp.com/?user=abhinav1602&theme=radical&card_title=My%20GitHub%20Streak" width="100%" height="32%"/>
