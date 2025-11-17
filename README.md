@@ -24,14 +24,14 @@ Here are some ideas to get you started:
 <table align="center">
   <tr>
     <td width="50%" valign="top">
-      <img src="https://github-readme-stats.vercel.app/api/wakatime?username=@abhinav1602&show_icons=true&title_color=007bff&text_color=ffffff&bg_color=1a1a1a&border_color=007bff&custom_title=My%20Coding%20Activity%20on%20Github" alt="My Coding Activity on Github" width="100%"/>
+      <img src="https://github-readme-stats.vercel.app/api/wakatime?username=abhinav1602&show_icons=true&title_color=007bff&text_color=ffffff&bg_color=1a1a1a&border_color=007bff&custom_title=My%20Coding%20Activity%20on%20Github&cache_seconds=21600" alt="My Coding Activity on Github" width="100%"/>
     </td>
     <td width="50%" valign="top">
       <img src="https://streak-stats.demolab.com/?user=abhinav1602&theme=radical&card_title=My%20GitHub%20Streak" width="100%" height="32%"/>
       <br/>
-      <img src="https://github-readme-stats.vercel.app/api/top-langs/?username=abhinav1602&exclude_repo=basicPortfolio-abhinav1602&hide=css,html&show_icons=true&theme=tokyonight&custom_title=Top%20Languages%20Used" alt="Top Languages Used" width="100%" height="32%"/>
+      <img src="https://github-readme-stats.vercel.app/api/top-langs/?username=abhinav1602&exclude_repo=basicPortfolio-abhinav1602&hide=css,html&show_icons=true&theme=tokyonight&custom_title=Top%20Languages%20Used&cache_seconds=21600" alt="Top Languages Used" width="100%" height="32%"/>
       <br/>
-      <img src="https://github-readme-stats.vercel.app/api?username=abhinav1602&show_icons=true&hide_rank=true&custom_title=My%20GitHub%20Stats&theme=tokyonight" alt="My GitHub Stats" width="100%" height="32%"/>
+      <img src="https://github-readme-stats.vercel.app/api?username=abhinav1602&show_icons=true&hide_rank=true&custom_title=My%20GitHub%20Stats&theme=tokyonight&cache_seconds=21600" alt="My GitHub Stats" width="100%" height="32%"/>
     </td>
   </tr>
 </table>
