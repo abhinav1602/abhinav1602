@@ -19,6 +19,8 @@ THEME = {
     "line": "#2ac3de",
 }
 
+FONT_FAMILY = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+
 LANG_COLORS = {
     "JavaScript": "#f1e05a",
     "Python": "#3572A5",
@@ -99,7 +101,6 @@ def fetch_data_graphql(token):
 
 
 def fetch_data_rest():
-    # Fallback using REST API
     headers = {"User-Agent": "Mozilla/5.0"}
     token = os.environ.get("GITHUB_TOKEN", "")
     if token:
@@ -136,7 +137,7 @@ def fetch_data_rest():
 
 
 def generate_stats_svg(data):
-    if "contributionsCollection" in data: # GraphQL
+    if "contributionsCollection" in data:
         total_repos = data["repositories"]["totalCount"]
         total_stars = sum(r["stargazerCount"] for r in data["repositories"]["nodes"])
         total_forks = sum(r["forkCount"] for r in data["repositories"]["nodes"])
@@ -145,7 +146,7 @@ def generate_stats_svg(data):
         issues = data["contributionsCollection"]["totalIssueContributions"]
         followers = data["followers"]["totalCount"]
         contributions = data["contributionsCollection"]["contributionCalendar"]["totalContributions"]
-    else: # REST fallback
+    else:
         total_repos = data["user_info"].get("public_repos", 0)
         total_stars = data["total_stars"]
         total_forks = data["total_forks"]
@@ -155,45 +156,38 @@ def generate_stats_svg(data):
         issues = "N/A"
         contributions = "600+"
 
-    svg = f"""<svg width="450" height="220" viewBox="0 0 450 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+    svg = f"""<svg width="450" height="220" viewBox="0 0 450 220" fill="none" xmlns="http://www.w3.org/2000/svg" shape-rendering="geometricPrecision" text-rendering="geometricPrecision">
   <style>
-    .header {{ font: 600 18px 'Segoe UI', Ubuntu, Sans-Serif; fill: {THEME['title']}; }}
-    .stat-label {{ font: 400 13px 'Segoe UI', Ubuntu, Sans-Serif; fill: {THEME['text']}; }}
-    .stat-value {{ font: 600 13px 'Segoe UI', Ubuntu, Sans-Serif; fill: {THEME['accent']}; }}
-    .border {{ stroke: {THEME['border']}; stroke-width: 1.5; opacity: 0.7; }}
+    .header {{ font: 600 18px {FONT_FAMILY}; fill: {THEME['title']}; }}
+    .stat-label {{ font: 400 13px {FONT_FAMILY}; fill: {THEME['text']}; }}
+    .stat-value {{ font: 600 13px {FONT_FAMILY}; fill: {THEME['accent']}; }}
+    .border {{ stroke: {THEME['border']}; stroke-width: 1.5; opacity: 0.8; }}
     .bg {{ fill: {THEME['bg']}; rx: 10px; }}
-    .icon {{ fill: {THEME['title']}; }}
   </style>
   <rect x="1" y="1" width="448" height="218" class="bg border"/>
   <text x="25" y="38" class="header">My GitHub Stats</text>
 
   <g transform="translate(25, 60)">
-    <!-- Stars -->
     <g transform="translate(0, 0)">
       <text x="0" y="15" class="stat-label">★ Total Stars Earned:</text>
       <text x="390" y="15" class="stat-value" text-anchor="end">{total_stars}</text>
     </g>
-    <!-- Total Contributions -->
     <g transform="translate(0, 26)">
       <text x="0" y="15" class="stat-label">📦 Total Contributions:</text>
       <text x="390" y="15" class="stat-value" text-anchor="end">{contributions}</text>
     </g>
-    <!-- Total Repos -->
     <g transform="translate(0, 52)">
       <text x="0" y="15" class="stat-label">📁 Public Repositories:</text>
       <text x="390" y="15" class="stat-value" text-anchor="end">{total_repos}</text>
     </g>
-    <!-- Total Forks -->
     <g transform="translate(0, 78)">
       <text x="0" y="15" class="stat-label">🍴 Total Forks:</text>
       <text x="390" y="15" class="stat-value" text-anchor="end">{total_forks}</text>
     </g>
-    <!-- Followers -->
     <g transform="translate(0, 104)">
       <text x="0" y="15" class="stat-label">👥 Followers:</text>
       <text x="390" y="15" class="stat-value" text-anchor="end">{followers}</text>
     </g>
-    <!-- Pull Requests / Issues -->
     <g transform="translate(0, 130)">
       <text x="0" y="15" class="stat-label">🔀 Pull Requests &amp; Issues:</text>
       <text x="390" y="15" class="stat-value" text-anchor="end">{prs} PRs / {issues} Issues</text>
@@ -205,16 +199,15 @@ def generate_stats_svg(data):
 
 def generate_top_langs_svg(data):
     langs = {}
-    if "repositories" in data: # GraphQL
+    if "repositories" in data:
         for repo in data["repositories"]["nodes"]:
             for edge in repo["languages"]["edges"]:
                 l_name = edge["node"]["name"]
                 l_size = edge["size"]
                 langs[l_name] = langs.get(l_name, 0) + l_size
-    else: # REST
+    else:
         langs = data["lang_sizes"]
 
-    # Exclude CSS / HTML if desired or keep
     total_size = sum(langs.values()) or 1
     sorted_langs = sorted(langs.items(), key=lambda x: x[1], reverse=True)[:6]
 
@@ -237,12 +230,12 @@ def generate_top_langs_svg(data):
     </g>"""
         y_offset += 24
 
-    svg = f"""<svg width="450" height="220" viewBox="0 0 450 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+    svg = f"""<svg width="450" height="220" viewBox="0 0 450 220" fill="none" xmlns="http://www.w3.org/2000/svg" shape-rendering="geometricPrecision" text-rendering="geometricPrecision">
   <style>
-    .header {{ font: 600 18px 'Segoe UI', Ubuntu, Sans-Serif; fill: {THEME['title']}; }}
-    .lang-name {{ font: 500 13px 'Segoe UI', Ubuntu, Sans-Serif; fill: {THEME['text']}; }}
-    .lang-pct {{ font: 400 12px 'Segoe UI', Ubuntu, Sans-Serif; fill: {THEME['subtext']}; }}
-    .border {{ stroke: {THEME['border']}; stroke-width: 1.5; opacity: 0.7; }}
+    .header {{ font: 600 18px {FONT_FAMILY}; fill: {THEME['title']}; }}
+    .lang-name {{ font: 500 13px {FONT_FAMILY}; fill: {THEME['text']}; }}
+    .lang-pct {{ font: 400 12px {FONT_FAMILY}; fill: {THEME['subtext']}; }}
+    .border {{ stroke: {THEME['border']}; stroke-width: 1.5; opacity: 0.8; }}
     .bg {{ fill: {THEME['bg']}; rx: 10px; }}
   </style>
   <rect x="1" y="1" width="448" height="218" class="bg border"/>
@@ -265,10 +258,8 @@ def generate_streak_svg(data):
             for day in week["contributionDays"]:
                 days.append(day)
 
-        # Sort by date
         days.sort(key=lambda x: x["date"])
 
-        # Calculate streak ending today or yesterday
         today_str = datetime.utcnow().strftime("%Y-%m-%d")
         yest_str = (datetime.utcnow() - timedelta(days=1)).strftime("%Y-%m-%d")
 
@@ -284,9 +275,7 @@ def generate_streak_svg(data):
 
         longest_streak = max_s
 
-        # Current streak calculation working backwards
         curr = 0
-        # Check from end backwards
         for d in reversed(days):
             if d["contributionCount"] > 0:
                 curr += 1
@@ -301,36 +290,36 @@ def generate_streak_svg(data):
         current_streak = 5
         longest_streak = 14
 
-    svg = f"""<svg width="450" height="100" viewBox="0 0 450 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+    svg = f"""<svg width="880" height="120" viewBox="0 0 880 120" fill="none" xmlns="http://www.w3.org/2000/svg" shape-rendering="geometricPrecision" text-rendering="geometricPrecision">
   <style>
-    .header {{ font: 600 14px 'Segoe UI', Ubuntu, Sans-Serif; fill: {THEME['subtext']}; }}
-    .val {{ font: 700 22px 'Segoe UI', Ubuntu, Sans-Serif; fill: {THEME['title']}; }}
-    .border {{ stroke: {THEME['border']}; stroke-width: 1.5; opacity: 0.7; }}
+    .header {{ font: 600 15px {FONT_FAMILY}; fill: {THEME['subtext']}; }}
+    .val {{ font: 700 24px {FONT_FAMILY}; fill: {THEME['title']}; }}
+    .border {{ stroke: {THEME['border']}; stroke-width: 1.5; opacity: 0.8; }}
     .bg {{ fill: {THEME['bg']}; rx: 10px; }}
-    .divider {{ stroke: {THEME['bar_bg']}; stroke-width: 1; }}
+    .divider {{ stroke: {THEME['bar_bg']}; stroke-width: 1.5; }}
   </style>
-  <rect x="1" y="1" width="448" height="98" class="bg border"/>
+  <rect x="1" y="1" width="878" height="118" class="bg border"/>
 
   <!-- Total -->
-  <g transform="translate(20, 25)">
-    <text x="60" y="15" text-anchor="middle" class="header">Total Contributions</text>
-    <text x="60" y="48" text-anchor="middle" class="val">{total_contributions}</text>
+  <g transform="translate(50, 32)">
+    <text x="100" y="15" text-anchor="middle" class="header">Total Contributions</text>
+    <text x="100" y="52" text-anchor="middle" class="val">{total_contributions}</text>
   </g>
 
-  <line x1="150" y1="20" x2="150" y2="80" class="divider" />
+  <line x1="293" y1="20" x2="293" y2="100" class="divider" />
 
   <!-- Current Streak -->
-  <g transform="translate(165, 25)">
-    <text x="60" y="15" text-anchor="middle" class="header">Current Streak</text>
-    <text x="60" y="48" text-anchor="middle" class="val" fill="{THEME['green']}">{current_streak} days</text>
+  <g transform="translate(340, 32)">
+    <text x="100" y="15" text-anchor="middle" class="header">Current Streak</text>
+    <text x="100" y="52" text-anchor="middle" class="val" fill="{THEME['green']}">{current_streak} days</text>
   </g>
 
-  <line x1="295" y1="20" x2="295" y2="80" class="divider" />
+  <line x1="586" y1="20" x2="586" y2="100" class="divider" />
 
   <!-- Longest Streak -->
-  <g transform="translate(310, 25)">
-    <text x="60" y="15" text-anchor="middle" class="header">Longest Streak</text>
-    <text x="60" y="48" text-anchor="middle" class="val">{longest_streak} days</text>
+  <g transform="translate(630, 32)">
+    <text x="100" y="15" text-anchor="middle" class="header">Longest Streak</text>
+    <text x="100" y="52" text-anchor="middle" class="val">{longest_streak} days</text>
   </g>
 </svg>"""
     return svg
@@ -344,11 +333,9 @@ def generate_activity_graph_svg(data):
             for day in week["contributionDays"]:
                 counts.append(day["contributionCount"])
     else:
-        # Fallback fake smooth activity data
         import math
         counts = [int(3 + 3 * math.sin(i / 5)) for i in range(120)]
 
-    # Take last 120 days
     counts = counts[-120:] if len(counts) >= 120 else counts
     if not counts:
         counts = [0] * 120
@@ -356,7 +343,7 @@ def generate_activity_graph_svg(data):
     max_c = max(counts) if max(counts) > 0 else 1
 
     width = 880
-    height = 150
+    height = 170
     padding_x = 30
     padding_y = 25
     graph_w = width - (padding_x * 2)
@@ -376,14 +363,14 @@ def generate_activity_graph_svg(data):
 
     area_d = path_d + f" L {points[-1][0]:.1f},{height - padding_y} L {padding_x},{height - padding_y} Z"
 
-    svg = f"""<svg width="880" height="170" viewBox="0 0 880 170" fill="none" xmlns="http://www.w3.org/2000/svg">
+    svg = f"""<svg width="880" height="170" viewBox="0 0 880 170" fill="none" xmlns="http://www.w3.org/2000/svg" shape-rendering="geometricPrecision" text-rendering="geometricPrecision">
   <style>
-    .header {{ font: 600 16px 'Segoe UI', Ubuntu, Sans-Serif; fill: {THEME['title']}; }}
-    .sub {{ font: 400 12px 'Segoe UI', Ubuntu, Sans-Serif; fill: {THEME['subtext']}; }}
-    .border {{ stroke: {THEME['border']}; stroke-width: 1.5; opacity: 0.7; }}
+    .header {{ font: 600 16px {FONT_FAMILY}; fill: {THEME['title']}; }}
+    .sub {{ font: 400 12px {FONT_FAMILY}; fill: {THEME['subtext']}; }}
+    .border {{ stroke: {THEME['border']}; stroke-width: 1.5; opacity: 0.8; }}
     .bg {{ fill: {THEME['bg']}; rx: 10px; }}
-    .line {{ stroke: {THEME['line']}; stroke-width: 2; stroke-linecap: round; fill: none; }}
-    .area {{ fill: url(#gradient); opacity: 0.3; }}
+    .line {{ stroke: {THEME['line']}; stroke-width: 2.5; stroke-linecap: round; fill: none; }}
+    .area {{ fill: url(#gradient); opacity: 0.35; }}
   </style>
   <defs>
     <linearGradient id="gradient" x1="0" y1="0" x2="0" y2="1">
@@ -393,7 +380,7 @@ def generate_activity_graph_svg(data):
   </defs>
 
   <rect x="1" y="1" width="878" height="168" class="bg border"/>
-  <text x="30" y="25" class="header">Contribution Activity (Last 4 Months)</text>
+  <text x="30" y="28" class="header">Contribution Activity (Last 4 Months)</text>
 
   <path d="{area_d}" class="area" />
   <path d="{path_d}" class="line" />
