@@ -11,7 +11,7 @@
   <!-- Total -->
   <g transform="translate(20, 25)">
     <text x="60" y="15" text-anchor="middle" class="header">Total Contributions</text>
-    <text x="60" y="48" text-anchor="middle" class="val">600+</text>
+    <text x="60" y="48" text-anchor="middle" class="val">99</text>
   </g>
 
   <line x1="150" y1="20" x2="150" y2="80" class="divider" />
@@ -19,7 +19,7 @@
   <!-- Current Streak -->
   <g transform="translate(165, 25)">
     <text x="60" y="15" text-anchor="middle" class="header">Current Streak</text>
-    <text x="60" y="48" text-anchor="middle" class="val" fill="#9ece6a">5 days</text>
+    <text x="60" y="48" text-anchor="middle" class="val" fill="#9ece6a">2 days</text>
   </g>
 
   <line x1="295" y1="20" x2="295" y2="80" class="divider" />
@@ -27,6 +27,6 @@
   <!-- Longest Streak -->
   <g transform="translate(310, 25)">
     <text x="60" y="15" text-anchor="middle" class="header">Longest Streak</text>
-    <text x="60" y="48" text-anchor="middle" class="val">14 days</text>
+    <text x="60" y="48" text-anchor="middle" class="val">5 days</text>
   </g>
 </svg>

@@ -19,12 +19,12 @@
     <!-- Total Contributions -->
     <g transform="translate(0, 26)">
       <text x="0" y="15" class="stat-label">📦 Total Contributions:</text>
-      <text x="390" y="15" class="stat-value" text-anchor="end">600+</text>
+      <text x="390" y="15" class="stat-value" text-anchor="end">99</text>
     </g>
     <!-- Total Repos -->
     <g transform="translate(0, 52)">
       <text x="0" y="15" class="stat-label">📁 Public Repositories:</text>
-      <text x="390" y="15" class="stat-value" text-anchor="end">62</text>
+      <text x="390" y="15" class="stat-value" text-anchor="end">18</text>
     </g>
     <!-- Total Forks -->
     <g transform="translate(0, 78)">
@@ -39,7 +39,7 @@
     <!-- Pull Requests / Issues -->
     <g transform="translate(0, 130)">
       <text x="0" y="15" class="stat-label">🔀 Pull Requests &amp; Issues:</text>
-      <text x="390" y="15" class="stat-value" text-anchor="end">N/A PRs / N/A Issues</text>
+      <text x="390" y="15" class="stat-value" text-anchor="end">24 PRs / 1 Issues</text>
     </g>
   </g>
 </svg>
