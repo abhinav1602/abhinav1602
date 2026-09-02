@@ -1,0 +1,32 @@
+<svg width="450" height="100" viewBox="0 0 450 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .header { font: 600 14px 'Segoe UI', Ubuntu, Sans-Serif; fill: #787c99; }
+    .val { font: 700 22px 'Segoe UI', Ubuntu, Sans-Serif; fill: #7aa2f7; }
+    .border { stroke: #2ac3de; stroke-width: 1.5; opacity: 0.7; }
+    .bg { fill: #1a1b26; rx: 10px; }
+    .divider { stroke: #24283b; stroke-width: 1; }
+  </style>
+  <rect x="1" y="1" width="448" height="98" class="bg border"/>
+
+  <!-- Total -->
+  <g transform="translate(20, 25)">
+    <text x="60" y="15" text-anchor="middle" class="header">Total Contributions</text>
+    <text x="60" y="48" text-anchor="middle" class="val">600+</text>
+  </g>
+
+  <line x1="150" y1="20" x2="150" y2="80" class="divider" />
+
+  <!-- Current Streak -->
+  <g transform="translate(165, 25)">
+    <text x="60" y="15" text-anchor="middle" class="header">Current Streak</text>
+    <text x="60" y="48" text-anchor="middle" class="val" fill="#9ece6a">5 days</text>
+  </g>
+
+  <line x1="295" y1="20" x2="295" y2="80" class="divider" />
+
+  <!-- Longest Streak -->
+  <g transform="translate(310, 25)">
+    <text x="60" y="15" text-anchor="middle" class="header">Longest Streak</text>
+    <text x="60" y="48" text-anchor="middle" class="val">14 days</text>
+  </g>
+</svg>
