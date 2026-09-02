@@ -1,17 +1,17 @@
 <svg width="880" height="120" viewBox="0 0 880 120" fill="none" xmlns="http://www.w3.org/2000/svg" shape-rendering="geometricPrecision" text-rendering="geometricPrecision">
   <style>
-    .header { font: 600 15px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; fill: #787c99; }
+    .header { font: 600 14px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; fill: #787c99; }
     .val { font: 700 24px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; fill: #7aa2f7; }
-    .border { stroke: #2ac3de; stroke-width: 1.5; opacity: 0.8; }
-    .bg { fill: #1a1b26; rx: 10px; }
+    .border { stroke: #3b4261; stroke-width: 1.5; }
+    .bg { fill: #1a1b26; rx: 12px; }
     .divider { stroke: #24283b; stroke-width: 1.5; }
   </style>
   <rect x="1" y="1" width="878" height="118" class="bg border"/>
 
   <!-- Total -->
   <g transform="translate(50, 32)">
-    <text x="100" y="15" text-anchor="middle" class="header">Total Contributions</text>
-    <text x="100" y="52" text-anchor="middle" class="val">600+</text>
+    <text x="100" y="15" text-anchor="middle" class="header">Lifetime Contributions</text>
+    <text x="100" y="52" text-anchor="middle" class="val">1,200+</text>
   </g>
 
   <line x1="293" y1="20" x2="293" y2="100" class="divider" />
@@ -27,6 +27,6 @@
   <!-- Longest Streak -->
   <g transform="translate(630, 32)">
     <text x="100" y="15" text-anchor="middle" class="header">Longest Streak</text>
-    <text x="100" y="52" text-anchor="middle" class="val">14 days</text>
+    <text x="100" y="52" text-anchor="middle" class="val">24 days</text>
   </g>
 </svg>

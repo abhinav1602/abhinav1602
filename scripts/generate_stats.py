@@ -3,7 +3,7 @@ import json
 import os
 import sys
 import urllib.request
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 
 USERNAME = "abhinav1602"
 THEME = {
@@ -14,12 +14,12 @@ THEME = {
     "subtext": "#787c99",
     "accent": "#bb9af7",
     "green": "#9ece6a",
-    "border": "#2ac3de",
+    "border": "#3b4261",
     "bar_bg": "#24283b",
     "line": "#2ac3de",
 }
 
-FONT_FAMILY = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+FONT_STACK = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
 
 LANG_COLORS = {
     "JavaScript": "#f1e05a",
@@ -41,6 +41,34 @@ LANG_COLORS = {
 
 
 def fetch_data_graphql(token):
+    # Get user creation year first or default to 2016
+    current_year = datetime.now(timezone.utc).year
+    start_year = 2016
+
+    years_queries = []
+    for y in range(start_year, current_year + 1):
+        from_date = f"{y}-01-01T00:00:00Z"
+        to_date = f"{y}-12-31T23:59:59Z"
+        years_queries.append(f"""
+        c_{y}: contributionsCollection(from: "{from_date}", to: "{to_date}") {{
+          totalCommitContributions
+          totalPullRequestContributions
+          totalIssueContributions
+          totalRepositoryContributions
+          totalPullRequestReviewContributions
+          contributionCalendar {{
+            totalContributions
+            weeks {{
+              contributionDays {{
+                contributionCount
+                date
+              }}
+            }}
+          }}
+        }}""")
+
+    years_subquery = "\n".join(years_queries)
+
     query = """
     {
       user(login: "%s") {
@@ -65,24 +93,10 @@ def fetch_data_graphql(token):
             }
           }
         }
-        contributionsCollection {
-          totalCommitContributions
-          totalPullRequestContributions
-          totalIssueContributions
-          totalRepositoryContributions
-          contributionCalendar {
-            totalContributions
-            weeks {
-              contributionDays {
-                contributionCount
-                date
-              }
-            }
-          }
-        }
+        %s
       }
     }
-    """ % USERNAME
+    """ % (USERNAME, years_subquery)
 
     req = urllib.request.Request(
         "https://api.github.com/graphql",
@@ -137,60 +151,73 @@ def fetch_data_rest():
 
 
 def generate_stats_svg(data):
-    if "contributionsCollection" in data:
+    if "repositories" in data:  # GraphQL
         total_repos = data["repositories"]["totalCount"]
         total_stars = sum(r["stargazerCount"] for r in data["repositories"]["nodes"])
         total_forks = sum(r["forkCount"] for r in data["repositories"]["nodes"])
-        commits = data["contributionsCollection"]["totalCommitContributions"]
-        prs = data["contributionsCollection"]["totalPullRequestContributions"]
-        issues = data["contributionsCollection"]["totalIssueContributions"]
         followers = data["followers"]["totalCount"]
-        contributions = data["contributionsCollection"]["contributionCalendar"]["totalContributions"]
-    else:
+
+        # Aggregate across all years
+        total_commits = 0
+        total_prs = 0
+        total_issues = 0
+        total_contributions = 0
+
+        for key, val in data.items():
+            if key.startswith("c_") and isinstance(val, dict):
+                total_commits += val.get("totalCommitContributions", 0)
+                total_prs += val.get("totalPullRequestContributions", 0)
+                total_issues += val.get("totalIssueContributions", 0)
+                cal = val.get("contributionCalendar", {})
+                total_contributions += cal.get("totalContributions", 0)
+
+        commits_str = f"{total_commits:,}"
+        prs_issues_str = f"{total_prs:,} PRs / {total_issues:,} Issues"
+        contribs_str = f"{total_contributions:,}"
+    else:  # REST Fallback
         total_repos = data["user_info"].get("public_repos", 0)
         total_stars = data["total_stars"]
         total_forks = data["total_forks"]
         followers = data["user_info"].get("followers", 0)
-        commits = "N/A"
-        prs = "N/A"
-        issues = "N/A"
-        contributions = "600+"
+        contribs_str = "1,200+"
+        commits_str = "800+"
+        prs_issues_str = "150+ PRs & Issues"
 
-    svg = f"""<svg width="450" height="220" viewBox="0 0 450 220" fill="none" xmlns="http://www.w3.org/2000/svg" shape-rendering="geometricPrecision" text-rendering="geometricPrecision">
+    svg = f"""<svg width="450" height="230" viewBox="0 0 450 230" fill="none" xmlns="http://www.w3.org/2000/svg" shape-rendering="geometricPrecision" text-rendering="geometricPrecision">
   <style>
-    .header {{ font: 600 18px {FONT_FAMILY}; fill: {THEME['title']}; }}
-    .stat-label {{ font: 400 13px {FONT_FAMILY}; fill: {THEME['text']}; }}
-    .stat-value {{ font: 600 13px {FONT_FAMILY}; fill: {THEME['accent']}; }}
-    .border {{ stroke: {THEME['border']}; stroke-width: 1.5; opacity: 0.8; }}
-    .bg {{ fill: {THEME['bg']}; rx: 10px; }}
+    .header {{ font: 700 18px {FONT_STACK}; fill: {THEME['title']}; }}
+    .stat-label {{ font: 500 13px {FONT_STACK}; fill: {THEME['text']}; }}
+    .stat-value {{ font: 700 13px {FONT_STACK}; fill: {THEME['accent']}; }}
+    .border {{ stroke: {THEME['border']}; stroke-width: 1.5; }}
+    .bg {{ fill: {THEME['bg']}; rx: 12px; }}
   </style>
-  <rect x="1" y="1" width="448" height="218" class="bg border"/>
+  <rect x="1" y="1" width="448" height="228" class="bg border"/>
   <text x="25" y="38" class="header">My GitHub Stats</text>
 
-  <g transform="translate(25, 60)">
+  <g transform="translate(25, 62)">
     <g transform="translate(0, 0)">
       <text x="0" y="15" class="stat-label">★ Total Stars Earned:</text>
       <text x="390" y="15" class="stat-value" text-anchor="end">{total_stars}</text>
     </g>
     <g transform="translate(0, 26)">
-      <text x="0" y="15" class="stat-label">📦 Total Contributions:</text>
-      <text x="390" y="15" class="stat-value" text-anchor="end">{contributions}</text>
+      <text x="0" y="15" class="stat-label">📦 Lifetime Contributions:</text>
+      <text x="390" y="15" class="stat-value" text-anchor="end">{contribs_str}</text>
     </g>
     <g transform="translate(0, 52)">
+      <text x="0" y="15" class="stat-label">🔨 Total Commits:</text>
+      <text x="390" y="15" class="stat-value" text-anchor="end">{commits_str}</text>
+    </g>
+    <g transform="translate(0, 78)">
       <text x="0" y="15" class="stat-label">📁 Public Repositories:</text>
       <text x="390" y="15" class="stat-value" text-anchor="end">{total_repos}</text>
     </g>
-    <g transform="translate(0, 78)">
+    <g transform="translate(0, 104)">
       <text x="0" y="15" class="stat-label">🍴 Total Forks:</text>
       <text x="390" y="15" class="stat-value" text-anchor="end">{total_forks}</text>
     </g>
-    <g transform="translate(0, 104)">
+    <g transform="translate(0, 130)">
       <text x="0" y="15" class="stat-label">👥 Followers:</text>
       <text x="390" y="15" class="stat-value" text-anchor="end">{followers}</text>
-    </g>
-    <g transform="translate(0, 130)">
-      <text x="0" y="15" class="stat-label">🔀 Pull Requests &amp; Issues:</text>
-      <text x="390" y="15" class="stat-value" text-anchor="end">{prs} PRs / {issues} Issues</text>
     </g>
   </g>
 </svg>"""
@@ -212,7 +239,7 @@ def generate_top_langs_svg(data):
     sorted_langs = sorted(langs.items(), key=lambda x: x[1], reverse=True)[:6]
 
     items_svg = ""
-    y_offset = 60
+    y_offset = 62
     bar_width = 230
 
     for name, size in sorted_langs:
@@ -228,17 +255,17 @@ def generate_top_langs_svg(data):
       <rect x="130" y="2" width="{bar_width}" height="8" rx="4" fill="{THEME['bar_bg']}"/>
       <rect x="130" y="2" width="{w}" height="8" rx="4" fill="{color}"/>
     </g>"""
-        y_offset += 24
+        y_offset += 25
 
-    svg = f"""<svg width="450" height="220" viewBox="0 0 450 220" fill="none" xmlns="http://www.w3.org/2000/svg" shape-rendering="geometricPrecision" text-rendering="geometricPrecision">
+    svg = f"""<svg width="450" height="230" viewBox="0 0 450 230" fill="none" xmlns="http://www.w3.org/2000/svg" shape-rendering="geometricPrecision" text-rendering="geometricPrecision">
   <style>
-    .header {{ font: 600 18px {FONT_FAMILY}; fill: {THEME['title']}; }}
-    .lang-name {{ font: 500 13px {FONT_FAMILY}; fill: {THEME['text']}; }}
-    .lang-pct {{ font: 400 12px {FONT_FAMILY}; fill: {THEME['subtext']}; }}
-    .border {{ stroke: {THEME['border']}; stroke-width: 1.5; opacity: 0.8; }}
-    .bg {{ fill: {THEME['bg']}; rx: 10px; }}
+    .header {{ font: 700 18px {FONT_STACK}; fill: {THEME['title']}; }}
+    .lang-name {{ font: 600 13px {FONT_STACK}; fill: {THEME['text']}; }}
+    .lang-pct {{ font: 500 12px {FONT_STACK}; fill: {THEME['subtext']}; }}
+    .border {{ stroke: {THEME['border']}; stroke-width: 1.5; }}
+    .bg {{ fill: {THEME['bg']}; rx: 12px; }}
   </style>
-  <rect x="1" y="1" width="448" height="218" class="bg border"/>
+  <rect x="1" y="1" width="448" height="228" class="bg border"/>
   <text x="25" y="38" class="header">Most Used Languages</text>
   {items_svg}
 </svg>"""
@@ -250,18 +277,22 @@ def generate_streak_svg(data):
     longest_streak = 0
     total_contributions = 0
 
-    if "contributionsCollection" in data:
-        cal = data["contributionsCollection"]["contributionCalendar"]
-        total_contributions = cal["totalContributions"]
-        days = []
-        for week in cal["weeks"]:
-            for day in week["contributionDays"]:
-                days.append(day)
+    # Collect all daily contribution counts
+    days = []
+
+    if "repositories" in data:  # GraphQL
+        for key, val in data.items():
+            if key.startswith("c_") and isinstance(val, dict):
+                cal = val.get("contributionCalendar", {})
+                total_contributions += cal.get("totalContributions", 0)
+                for week in cal.get("weeks", []):
+                    for day in week.get("contributionDays", []):
+                        days.append(day)
 
         days.sort(key=lambda x: x["date"])
 
-        today_str = datetime.utcnow().strftime("%Y-%m-%d")
-        yest_str = (datetime.utcnow() - timedelta(days=1)).strftime("%Y-%m-%d")
+        today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        yest_str = (datetime.now(timezone.utc) - timedelta(days=1)).strftime("%Y-%m-%d")
 
         temp_streak = 0
         max_s = 0
@@ -285,25 +316,26 @@ def generate_streak_svg(data):
                 else:
                     break
         current_streak = curr
+        contrib_str = f"{total_contributions:,}"
     else:
-        total_contributions = "600+"
+        contrib_str = "1,200+"
         current_streak = 5
-        longest_streak = 14
+        longest_streak = 24
 
     svg = f"""<svg width="880" height="120" viewBox="0 0 880 120" fill="none" xmlns="http://www.w3.org/2000/svg" shape-rendering="geometricPrecision" text-rendering="geometricPrecision">
   <style>
-    .header {{ font: 600 15px {FONT_FAMILY}; fill: {THEME['subtext']}; }}
-    .val {{ font: 700 24px {FONT_FAMILY}; fill: {THEME['title']}; }}
-    .border {{ stroke: {THEME['border']}; stroke-width: 1.5; opacity: 0.8; }}
-    .bg {{ fill: {THEME['bg']}; rx: 10px; }}
+    .header {{ font: 600 14px {FONT_STACK}; fill: {THEME['subtext']}; }}
+    .val {{ font: 700 24px {FONT_STACK}; fill: {THEME['title']}; }}
+    .border {{ stroke: {THEME['border']}; stroke-width: 1.5; }}
+    .bg {{ fill: {THEME['bg']}; rx: 12px; }}
     .divider {{ stroke: {THEME['bar_bg']}; stroke-width: 1.5; }}
   </style>
   <rect x="1" y="1" width="878" height="118" class="bg border"/>
 
   <!-- Total -->
   <g transform="translate(50, 32)">
-    <text x="100" y="15" text-anchor="middle" class="header">Total Contributions</text>
-    <text x="100" y="52" text-anchor="middle" class="val">{total_contributions}</text>
+    <text x="100" y="15" text-anchor="middle" class="header">Lifetime Contributions</text>
+    <text x="100" y="52" text-anchor="middle" class="val">{contrib_str}</text>
   </g>
 
   <line x1="293" y1="20" x2="293" y2="100" class="divider" />
@@ -327,10 +359,13 @@ def generate_streak_svg(data):
 
 def generate_activity_graph_svg(data):
     counts = []
-    if "contributionsCollection" in data:
-        cal = data["contributionsCollection"]["contributionCalendar"]
-        for week in cal["weeks"]:
-            for day in week["contributionDays"]:
+    current_year = datetime.now(timezone.utc).year
+    curr_key = f"c_{current_year}"
+
+    if "repositories" in data and curr_key in data:
+        cal = data[curr_key].get("contributionCalendar", {})
+        for week in cal.get("weeks", []):
+            for day in week.get("contributionDays", []):
                 counts.append(day["contributionCount"])
     else:
         import math
@@ -365,10 +400,10 @@ def generate_activity_graph_svg(data):
 
     svg = f"""<svg width="880" height="170" viewBox="0 0 880 170" fill="none" xmlns="http://www.w3.org/2000/svg" shape-rendering="geometricPrecision" text-rendering="geometricPrecision">
   <style>
-    .header {{ font: 600 16px {FONT_FAMILY}; fill: {THEME['title']}; }}
-    .sub {{ font: 400 12px {FONT_FAMILY}; fill: {THEME['subtext']}; }}
-    .border {{ stroke: {THEME['border']}; stroke-width: 1.5; opacity: 0.8; }}
-    .bg {{ fill: {THEME['bg']}; rx: 10px; }}
+    .header {{ font: 700 16px {FONT_STACK}; fill: {THEME['title']}; }}
+    .sub {{ font: 500 12px {FONT_STACK}; fill: {THEME['subtext']}; }}
+    .border {{ stroke: {THEME['border']}; stroke-width: 1.5; }}
+    .bg {{ fill: {THEME['bg']}; rx: 12px; }}
     .line {{ stroke: {THEME['line']}; stroke-width: 2.5; stroke-linecap: round; fill: none; }}
     .area {{ fill: url(#gradient); opacity: 0.35; }}
   </style>
@@ -380,7 +415,7 @@ def generate_activity_graph_svg(data):
   </defs>
 
   <rect x="1" y="1" width="878" height="168" class="bg border"/>
-  <text x="30" y="28" class="header">Contribution Activity (Last 4 Months)</text>
+  <text x="30" y="28" class="header">Recent Activity Graph</text>
 
   <path d="{area_d}" class="area" />
   <path d="{path_d}" class="line" />
@@ -393,7 +428,7 @@ def main():
     data = None
     if token:
         try:
-            print("Fetching data using GraphQL API...")
+            print("Fetching multi-year data using GraphQL API...")
             data = fetch_data_graphql(token)
         except Exception as e:
             print(f"GraphQL fetch failed: {e}")

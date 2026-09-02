@@ -6,22 +6,22 @@
 
 <!-- Dashboard Stats -->
 <p align="center">
-  <img src="./assets/streak-stats.svg" alt="GitHub Streak Stats" width="100%"/>
+  <img src="https://raw.githubusercontent.com/abhinav1602/abhinav1602/main/assets/streak-stats.svg" alt="GitHub Streak Stats" width="100%"/>
 </p>
 
 <table align="center" width="100%">
   <tr>
     <td width="50%" valign="top">
-      <img src="./assets/github-stats.svg" alt="My GitHub Stats" width="100%"/>
+      <img src="https://raw.githubusercontent.com/abhinav1602/abhinav1602/main/assets/github-stats.svg" alt="My GitHub Stats" width="100%"/>
     </td>
     <td width="50%" valign="top">
-      <img src="./assets/top-langs.svg" alt="Top Languages Used" width="100%"/>
+      <img src="https://raw.githubusercontent.com/abhinav1602/abhinav1602/main/assets/top-langs.svg" alt="Top Languages Used" width="100%"/>
     </td>
   </tr>
 </table>
 
 <p align="center">
-  <img src="./assets/activity-graph.svg" alt="My GitHub Activity Graph" width="100%"/>
+  <img src="https://raw.githubusercontent.com/abhinav1602/abhinav1602/main/assets/activity-graph.svg" alt="My GitHub Activity Graph" width="100%"/>
 </p>
 
 <br/>
