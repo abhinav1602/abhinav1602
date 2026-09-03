@@ -146,12 +146,17 @@ def fetch_data_rest():
         headers["Authorization"] = f"token {token}"
 
     def get_json(url):
-        req = urllib.request.Request(url, headers=headers)
-        with urllib.request.urlopen(req) as res:
-            return json.loads(res.read().decode())
+        try:
+            req = urllib.request.Request(url, headers=headers)
+            with urllib.request.urlopen(req) as res:
+                return json.loads(res.read().decode())
+        except Exception:
+            return {}
 
     user_info = get_json(f"https://api.github.com/users/{USERNAME}")
     repos_info = get_json(f"https://api.github.com/users/{USERNAME}/repos?per_page=100")
+    if not isinstance(repos_info, list):
+        repos_info = []
 
     total_stars = 0
     total_forks = 0
@@ -164,12 +169,26 @@ def fetch_data_rest():
         if lang:
             lang_sizes[lang] = lang_sizes.get(lang, 0) + 1
 
+    # Search API exact queries
+    commits_data = get_json(f"https://api.github.com/search/commits?q=author:{USERNAME}")
+    prs_data = get_json(f"https://api.github.com/search/issues?q=author:{USERNAME}+type:pr")
+    issues_data = get_json(f"https://api.github.com/search/issues?q=author:{USERNAME}+type:issue")
+
+    commits = commits_data.get("total_count", 0)
+    prs = prs_data.get("total_count", 0)
+    issues = issues_data.get("total_count", 0)
+    total_contributions = commits + prs + issues
+
     return {
         "user_info": user_info,
         "repos_info": repos_info,
         "total_stars": total_stars,
         "total_forks": total_forks,
         "lang_sizes": lang_sizes,
+        "commits": commits,
+        "prs": prs,
+        "issues": issues,
+        "total_contributions": total_contributions,
     }
 
 
@@ -207,10 +226,10 @@ def generate_stats_svg(data):
         total_stars = data["total_stars"]
         total_forks = data["total_forks"]
         followers = data["user_info"].get("followers", 0)
-        commits = "1,500+"
-        prs = "50+"
-        issues = "20+"
-        contributions = "2,000+"
+        commits = data.get("commits", 0)
+        prs = data.get("prs", 0)
+        issues = data.get("issues", 0)
+        contributions = data.get("total_contributions", 0)
 
     commits_str = f"{commits:,}" if isinstance(commits, int) else str(commits)
     prs_str = f"{prs:,}" if isinstance(prs, int) else str(prs)
@@ -365,9 +384,9 @@ def generate_streak_svg(data):
                     break
         current_streak = curr
     else:
-        total_contributions = "2,000+"
-        current_streak = 5
-        longest_streak = 14
+        total_contributions = data.get("total_contributions", 0)
+        current_streak = 0
+        longest_streak = 0
 
     tot_str = f"{total_contributions:,}" if isinstance(total_contributions, int) else str(total_contributions)
 

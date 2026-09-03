@@ -18,12 +18,12 @@
     <!-- Total Contributions -->
     <g transform="translate(0, 25)">
       <text x="0" y="15" class="stat-label">📦 Total Contributions:</text>
-      <text x="390" y="15" class="stat-value" text-anchor="end">2,000+</text>
+      <text x="390" y="15" class="stat-value" text-anchor="end">525</text>
     </g>
     <!-- Total Commits -->
     <g transform="translate(0, 50)">
       <text x="0" y="15" class="stat-label">📝 Total Commits:</text>
-      <text x="390" y="15" class="stat-value" text-anchor="end">1,500+</text>
+      <text x="390" y="15" class="stat-value" text-anchor="end">402</text>
     </g>
     <!-- Total Repos -->
     <g transform="translate(0, 75)">
@@ -38,7 +38,7 @@
     <!-- PRs & Issues -->
     <g transform="translate(0, 125)">
       <text x="0" y="15" class="stat-label">🔀 Pull Requests &amp; Issues:</text>
-      <text x="390" y="15" class="stat-value" text-anchor="end">50+ PRs / 20+ Issues</text>
+      <text x="390" y="15" class="stat-value" text-anchor="end">111 PRs / 12 Issues</text>
     </g>
   </g>
 </svg>
