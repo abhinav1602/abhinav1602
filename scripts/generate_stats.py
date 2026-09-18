@@ -40,7 +40,6 @@ LANG_COLORS = {
 
 
 def fetch_data_graphql(token):
-    # Query basic user details and creation date
     user_query = """
     {
       user(login: "%s") {
@@ -89,7 +88,6 @@ def fetch_data_graphql(token):
     start_year = int(created_at[:4])
     current_year = datetime.now(timezone.utc).year
 
-    # Query contributionsCollection for all years from account creation to present
     year_queries = []
     for year in range(start_year, current_year + 1):
         from_date = f"{year}-01-01T00:00:00Z"
@@ -139,7 +137,6 @@ def fetch_data_graphql(token):
 
 
 def fetch_data_rest():
-    # Fallback using REST API
     headers = {"User-Agent": "Mozilla/5.0"}
     token = os.environ.get("GITHUB_TOKEN", "")
     if token:
@@ -169,7 +166,6 @@ def fetch_data_rest():
         if lang:
             lang_sizes[lang] = lang_sizes.get(lang, 0) + 1
 
-    # Search API exact queries
     commits_data = get_json(f"https://api.github.com/search/commits?q=author:{USERNAME}")
     prs_data = get_json(f"https://api.github.com/search/issues?q=author:{USERNAME}+type:pr")
     issues_data = get_json(f"https://api.github.com/search/issues?q=author:{USERNAME}+type:issue")
@@ -179,7 +175,6 @@ def fetch_data_rest():
     issues = issues_data.get("total_count", 0)
     total_contributions = commits + prs + issues
 
-    # Public events for streak calculation in REST fallback
     events = get_json(f"https://api.github.com/users/{USERNAME}/events/public?per_page=100")
     daily_events = {}
     if isinstance(events, list):
@@ -203,7 +198,7 @@ def fetch_data_rest():
 
 
 def generate_stats_svg(data):
-    if "yearlyContributions" in data:  # GraphQL multi-year
+    if "yearlyContributions" in data:
         total_repos = data["repositories"]["totalCount"]
         total_stars = sum(r["stargazerCount"] for r in data["repositories"]["nodes"])
         total_forks = sum(r["forkCount"] for r in data["repositories"]["nodes"])
@@ -221,7 +216,7 @@ def generate_stats_svg(data):
             issues += yc.get("totalIssueContributions", 0)
             contributions += yc.get("contributionCalendar", {}).get("totalContributions", 0)
 
-    elif "repositories" in data:  # GraphQL single year fallback
+    elif "repositories" in data:
         total_repos = data["repositories"]["totalCount"]
         total_stars = sum(r["stargazerCount"] for r in data["repositories"]["nodes"])
         total_forks = sum(r["forkCount"] for r in data["repositories"]["nodes"])
@@ -229,7 +224,7 @@ def generate_stats_svg(data):
         prs = data["contributionsCollection"]["totalPullRequestContributions"]
         issues = data["contributionsCollection"]["totalIssueContributions"]
         contributions = data["contributionsCollection"]["contributionCalendar"]["totalContributions"]
-    else:  # REST fallback
+    else:
         total_repos = data["user_info"].get("public_repos", 0)
         total_stars = data["total_stars"]
         total_forks = data["total_forks"]
@@ -292,14 +287,14 @@ def generate_stats_svg(data):
 
 def generate_top_langs_svg(data):
     langs = {}
-    if "repositories" in data:  # GraphQL
+    if "repositories" in data:
         for repo in data["repositories"]["nodes"]:
             if repo.get("languages") and repo["languages"].get("edges"):
                 for edge in repo["languages"]["edges"]:
                     l_name = edge["node"]["name"]
                     l_size = edge["size"]
                     langs[l_name] = langs.get(l_name, 0) + l_size
-    else:  # REST
+    else:
         langs = data["lang_sizes"]
 
     total_size = sum(langs.values()) or 1
@@ -339,13 +334,49 @@ def generate_top_langs_svg(data):
     return svg
 
 
+def calculate_streaks_from_day_map(day_map):
+    if not day_map:
+        return 0, 0
+
+    sorted_dates = sorted(day_map.keys())
+    first_date = datetime.strptime(sorted_dates[0], "%Y-%m-%d").date()
+    last_date = datetime.strptime(sorted_dates[-1], "%Y-%m-%d").date()
+
+    max_s = 0
+    temp_s = 0
+    curr_d = first_date
+    while curr_d <= last_date:
+        d_str = curr_d.strftime("%Y-%m-%d")
+        if day_map.get(d_str, 0) > 0:
+            temp_s += 1
+            if temp_s > max_s:
+                max_s = temp_s
+        else:
+            temp_s = 0
+        curr_d += timedelta(days=1)
+
+    today = datetime.now(timezone.utc).date()
+    yesterday = today - timedelta(days=1)
+
+    curr_s = 0
+    check_date = today
+    if day_map.get(today.strftime("%Y-%m-%d"), 0) == 0 and day_map.get(yesterday.strftime("%Y-%m-%d"), 0) > 0:
+        check_date = yesterday
+
+    while day_map.get(check_date.strftime("%Y-%m-%d"), 0) > 0:
+        curr_s += 1
+        check_date -= timedelta(days=1)
+
+    return curr_s, max_s
+
+
 def generate_streak_svg(data):
     current_streak = 0
     longest_streak = 0
     total_contributions = 0
 
-    all_days = []
-    if "yearlyContributions" in data:  # GraphQL multi-year
+    day_map = {}
+    if "yearlyContributions" in data:
         for key in sorted(data["yearlyContributions"].keys()):
             yc = data["yearlyContributions"][key]
             if not yc:
@@ -354,78 +385,27 @@ def generate_streak_svg(data):
             total_contributions += cal.get("totalContributions", 0)
             for week in cal.get("weeks", []):
                 for day in week.get("contributionDays", []):
-                    all_days.append(day)
+                    d_str = day["date"]
+                    c_cnt = day.get("contributionCount", 0)
+                    day_map[d_str] = day_map.get(d_str, 0) + c_cnt
+
+        current_streak, longest_streak = calculate_streaks_from_day_map(day_map)
+
     elif "contributionsCollection" in data:
         cal = data["contributionsCollection"]["contributionCalendar"]
         total_contributions = cal["totalContributions"]
         for week in cal["weeks"]:
             for day in week["contributionDays"]:
-                all_days.append(day)
+                d_str = day["date"]
+                c_cnt = day.get("contributionCount", 0)
+                day_map[d_str] = day_map.get(d_str, 0) + c_cnt
 
-    if all_days:
-        all_days.sort(key=lambda x: x["date"])
-
-        today = datetime.now(timezone.utc).date()
-        yesterday = today - timedelta(days=1)
-
-        temp_streak = 0
-        max_s = 0
-        for d in all_days:
-            cnt = d.get("contributionCount", 0)
-            if cnt > 0:
-                temp_streak += 1
-                if temp_streak > max_s:
-                    max_s = temp_streak
-            else:
-                temp_streak = 0
-
-        longest_streak = max_s
-
-        curr = 0
-        # Check starting backwards from today or yesterday
-        check_date = today
-        day_dict = {d["date"]: d.get("contributionCount", 0) for d in all_days}
-
-        if day_dict.get(today.strftime("%Y-%m-%d"), 0) == 0 and day_dict.get(yesterday.strftime("%Y-%m-%d"), 0) > 0:
-            check_date = yesterday
-
-        while day_dict.get(check_date.strftime("%Y-%m-%d"), 0) > 0:
-            curr += 1
-            check_date -= timedelta(days=1)
-
-        current_streak = curr
+        current_streak, longest_streak = calculate_streaks_from_day_map(day_map)
 
     elif "daily_events" in data and data["daily_events"]:
         total_contributions = data.get("total_contributions", 0)
-        daily_events = data["daily_events"]
-        event_dates = sorted(daily_events.keys())
-        min_date = datetime.strptime(event_dates[0], "%Y-%m-%d").date()
-        max_date = datetime.strptime(event_dates[-1], "%Y-%m-%d").date()
-
-        temp_streak = 0
-        max_s = 0
-        curr_d = min_date
-        while curr_d <= max_date:
-            d_str = curr_d.strftime("%Y-%m-%d")
-            if daily_events.get(d_str, 0) > 0:
-                temp_streak += 1
-                if temp_streak > max_s:
-                    max_s = temp_streak
-            else:
-                temp_streak = 0
-            curr_d += timedelta(days=1)
-
-        longest_streak = max_s
-
-        today = datetime.now(timezone.utc).date()
-        yesterday = today - timedelta(days=1)
-        curr = 0
-        check_date = today if daily_events.get(today.strftime("%Y-%m-%d"), 0) > 0 else yesterday
-        while daily_events.get(check_date.strftime("%Y-%m-%d"), 0) > 0:
-            curr += 1
-            check_date -= timedelta(days=1)
-
-        current_streak = curr
+        day_map = data["daily_events"]
+        current_streak, longest_streak = calculate_streaks_from_day_map(day_map)
     else:
         total_contributions = data.get("total_contributions", 0)
         current_streak = 0
@@ -470,7 +450,7 @@ def generate_streak_svg(data):
 
 def generate_activity_graph_svg(data):
     counts = []
-    all_days = []
+    day_map = {}
     if "yearlyContributions" in data:
         for key in sorted(data["yearlyContributions"].keys()):
             yc = data["yearlyContributions"][key]
@@ -479,9 +459,14 @@ def generate_activity_graph_svg(data):
             cal = yc.get("contributionCalendar", {})
             for week in cal.get("weeks", []):
                 for day in week.get("contributionDays", []):
-                    all_days.append(day)
-        all_days.sort(key=lambda x: x["date"])
-        counts = [d["contributionCount"] for d in all_days]
+                    d_str = day["date"]
+                    day_map[d_str] = day_map.get(d_str, 0) + day.get("contributionCount", 0)
+
+        today = datetime.now(timezone.utc).date()
+        for i in range(120, -1, -1):
+            d_str = (today - timedelta(days=i)).strftime("%Y-%m-%d")
+            counts.append(day_map.get(d_str, 0))
+
     elif "contributionsCollection" in data:
         cal = data["contributionsCollection"]["contributionCalendar"]
         for week in cal["weeks"]:
