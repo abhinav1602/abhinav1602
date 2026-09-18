@@ -40,7 +40,7 @@ LANG_COLORS = {
 
 
 def fetch_data_graphql(token):
-    # First query basic user details and creation date
+    # Query basic user details and creation date
     user_query = """
     {
       user(login: "%s") {
@@ -146,12 +146,17 @@ def fetch_data_rest():
         headers["Authorization"] = f"token {token}"
 
     def get_json(url):
-        req = urllib.request.Request(url, headers=headers)
-        with urllib.request.urlopen(req) as res:
-            return json.loads(res.read().decode())
+        try:
+            req = urllib.request.Request(url, headers=headers)
+            with urllib.request.urlopen(req) as res:
+                return json.loads(res.read().decode())
+        except Exception:
+            return {}
 
     user_info = get_json(f"https://api.github.com/users/{USERNAME}")
     repos_info = get_json(f"https://api.github.com/users/{USERNAME}/repos?per_page=100")
+    if not isinstance(repos_info, list):
+        repos_info = []
 
     total_stars = 0
     total_forks = 0
@@ -164,12 +169,36 @@ def fetch_data_rest():
         if lang:
             lang_sizes[lang] = lang_sizes.get(lang, 0) + 1
 
+    # Search API exact queries
+    commits_data = get_json(f"https://api.github.com/search/commits?q=author:{USERNAME}")
+    prs_data = get_json(f"https://api.github.com/search/issues?q=author:{USERNAME}+type:pr")
+    issues_data = get_json(f"https://api.github.com/search/issues?q=author:{USERNAME}+type:issue")
+
+    commits = commits_data.get("total_count", 0)
+    prs = prs_data.get("total_count", 0)
+    issues = issues_data.get("total_count", 0)
+    total_contributions = commits + prs + issues
+
+    # Public events for streak calculation in REST fallback
+    events = get_json(f"https://api.github.com/users/{USERNAME}/events/public?per_page=100")
+    daily_events = {}
+    if isinstance(events, list):
+        for e in events:
+            d_str = e.get("created_at", "")[:10]
+            if d_str:
+                daily_events[d_str] = daily_events.get(d_str, 0) + 1
+
     return {
         "user_info": user_info,
         "repos_info": repos_info,
         "total_stars": total_stars,
         "total_forks": total_forks,
         "lang_sizes": lang_sizes,
+        "commits": commits,
+        "prs": prs,
+        "issues": issues,
+        "total_contributions": total_contributions,
+        "daily_events": daily_events,
     }
 
 
@@ -178,7 +207,6 @@ def generate_stats_svg(data):
         total_repos = data["repositories"]["totalCount"]
         total_stars = sum(r["stargazerCount"] for r in data["repositories"]["nodes"])
         total_forks = sum(r["forkCount"] for r in data["repositories"]["nodes"])
-        followers = data["followers"]["totalCount"]
 
         commits = 0
         prs = 0
@@ -197,7 +225,6 @@ def generate_stats_svg(data):
         total_repos = data["repositories"]["totalCount"]
         total_stars = sum(r["stargazerCount"] for r in data["repositories"]["nodes"])
         total_forks = sum(r["forkCount"] for r in data["repositories"]["nodes"])
-        followers = data["followers"]["totalCount"]
         commits = data["contributionsCollection"]["totalCommitContributions"]
         prs = data["contributionsCollection"]["totalPullRequestContributions"]
         issues = data["contributionsCollection"]["totalIssueContributions"]
@@ -206,11 +233,10 @@ def generate_stats_svg(data):
         total_repos = data["user_info"].get("public_repos", 0)
         total_stars = data["total_stars"]
         total_forks = data["total_forks"]
-        followers = data["user_info"].get("followers", 0)
-        commits = "1,500+"
-        prs = "50+"
-        issues = "20+"
-        contributions = "2,000+"
+        commits = data.get("commits", 0)
+        prs = data.get("prs", 0)
+        issues = data.get("issues", 0)
+        contributions = data.get("total_contributions", 0)
 
     commits_str = f"{commits:,}" if isinstance(commits, int) else str(commits)
     prs_str = f"{prs:,}" if isinstance(prs, int) else str(prs)
@@ -339,13 +365,14 @@ def generate_streak_svg(data):
     if all_days:
         all_days.sort(key=lambda x: x["date"])
 
-        today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-        yest_str = (datetime.now(timezone.utc) - timedelta(days=1)).strftime("%Y-%m-%d")
+        today = datetime.now(timezone.utc).date()
+        yesterday = today - timedelta(days=1)
 
         temp_streak = 0
         max_s = 0
         for d in all_days:
-            if d["contributionCount"] > 0:
+            cnt = d.get("contributionCount", 0)
+            if cnt > 0:
                 temp_streak += 1
                 if temp_streak > max_s:
                     max_s = temp_streak
@@ -355,19 +382,54 @@ def generate_streak_svg(data):
         longest_streak = max_s
 
         curr = 0
-        for d in reversed(all_days):
-            if d["contributionCount"] > 0:
-                curr += 1
+        # Check starting backwards from today or yesterday
+        check_date = today
+        day_dict = {d["date"]: d.get("contributionCount", 0) for d in all_days}
+
+        if day_dict.get(today.strftime("%Y-%m-%d"), 0) == 0 and day_dict.get(yesterday.strftime("%Y-%m-%d"), 0) > 0:
+            check_date = yesterday
+
+        while day_dict.get(check_date.strftime("%Y-%m-%d"), 0) > 0:
+            curr += 1
+            check_date -= timedelta(days=1)
+
+        current_streak = curr
+
+    elif "daily_events" in data and data["daily_events"]:
+        total_contributions = data.get("total_contributions", 0)
+        daily_events = data["daily_events"]
+        event_dates = sorted(daily_events.keys())
+        min_date = datetime.strptime(event_dates[0], "%Y-%m-%d").date()
+        max_date = datetime.strptime(event_dates[-1], "%Y-%m-%d").date()
+
+        temp_streak = 0
+        max_s = 0
+        curr_d = min_date
+        while curr_d <= max_date:
+            d_str = curr_d.strftime("%Y-%m-%d")
+            if daily_events.get(d_str, 0) > 0:
+                temp_streak += 1
+                if temp_streak > max_s:
+                    max_s = temp_streak
             else:
-                if d["date"] in (today_str, yest_str):
-                    continue
-                else:
-                    break
+                temp_streak = 0
+            curr_d += timedelta(days=1)
+
+        longest_streak = max_s
+
+        today = datetime.now(timezone.utc).date()
+        yesterday = today - timedelta(days=1)
+        curr = 0
+        check_date = today if daily_events.get(today.strftime("%Y-%m-%d"), 0) > 0 else yesterday
+        while daily_events.get(check_date.strftime("%Y-%m-%d"), 0) > 0:
+            curr += 1
+            check_date -= timedelta(days=1)
+
         current_streak = curr
     else:
-        total_contributions = "2,000+"
-        current_streak = 5
-        longest_streak = 14
+        total_contributions = data.get("total_contributions", 0)
+        current_streak = 0
+        longest_streak = 0
 
     tot_str = f"{total_contributions:,}" if isinstance(total_contributions, int) else str(total_contributions)
 
@@ -425,6 +487,12 @@ def generate_activity_graph_svg(data):
         for week in cal["weeks"]:
             for day in week["contributionDays"]:
                 counts.append(day["contributionCount"])
+    elif "daily_events" in data and data["daily_events"]:
+        daily_events = data["daily_events"]
+        today = datetime.now(timezone.utc).date()
+        for i in range(120, -1, -1):
+            d_str = (today - timedelta(days=i)).strftime("%Y-%m-%d")
+            counts.append(daily_events.get(d_str, 0))
     else:
         import math
         counts = [int(3 + 3 * math.sin(i / 5)) for i in range(120)]
