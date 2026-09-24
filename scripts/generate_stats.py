@@ -449,9 +449,24 @@ def generate_streak_svg(data):
     return svg
 
 
+def get_month_range(start_ym, end_ym):
+    start_y, start_m = map(int, start_ym.split("-"))
+    end_y, end_m = map(int, end_ym.split("-"))
+    months = []
+    cur_y, cur_m = start_y, start_m
+    while (cur_y < end_y) or (cur_y == end_y and cur_m <= end_m):
+        months.append(f"{cur_y:04d}-{cur_m:02d}")
+        cur_m += 1
+        if cur_m > 12:
+            cur_m = 1
+            cur_y += 1
+    return months
+
+
 def generate_activity_graph_svg(data):
-    counts = []
-    day_map = {}
+    # Overall monthly / yearly contribution activity graph
+    month_counts = {}
+
     if "yearlyContributions" in data:
         for key in sorted(data["yearlyContributions"].keys()):
             yc = data["yearlyContributions"][key]
@@ -460,32 +475,48 @@ def generate_activity_graph_svg(data):
             cal = yc.get("contributionCalendar", {})
             for week in cal.get("weeks", []):
                 for day in week.get("contributionDays", []):
-                    d_str = day["date"]
-                    day_map[d_str] = day_map.get(d_str, 0) + day.get("contributionCount", 0)
-
-        today = datetime.now(timezone.utc).date()
-        for i in range(120, -1, -1):
-            d_str = (today - timedelta(days=i)).strftime("%Y-%m-%d")
-            counts.append(day_map.get(d_str, 0))
-
+                    m_str = day["date"][:7]  # YYYY-MM
+                    month_counts[m_str] = month_counts.get(m_str, 0) + day.get("contributionCount", 0)
     elif "contributionsCollection" in data:
         cal = data["contributionsCollection"]["contributionCalendar"]
         for week in cal["weeks"]:
             for day in week["contributionDays"]:
-                counts.append(day["contributionCount"])
+                m_str = day["date"][:7]
+                month_counts[m_str] = month_counts.get(m_str, 0) + day.get("contributionCount", 0)
     elif "daily_events" in data and data["daily_events"]:
-        daily_events = data["daily_events"]
-        today = datetime.now(timezone.utc).date()
-        for i in range(120, -1, -1):
-            d_str = (today - timedelta(days=i)).strftime("%Y-%m-%d")
-            counts.append(daily_events.get(d_str, 0))
-    else:
-        import math
-        counts = [int(3 + 3 * math.sin(i / 5)) for i in range(120)]
+        for d_str, count in data["daily_events"].items():
+            m_str = d_str[:7]
+            month_counts[m_str] = month_counts.get(m_str, 0) + count
 
-    counts = counts[-120:] if len(counts) >= 120 else counts
-    if not counts:
-        counts = [0] * 120
+    today_dt = datetime.now(timezone.utc)
+    today_ym = today_dt.strftime("%Y-%m")
+
+    if not month_counts:
+        # Default 12 months ending at current month
+        end_ym = today_ym
+        end_y, end_m = map(int, end_ym.split("-"))
+        start_y = end_y - 1 if end_m == 12 else end_y - 1
+        start_m = 1 if end_m == 12 else end_m + 1
+        start_ym = f"{start_y:04d}-{start_m:02d}"
+        for m in get_month_range(start_ym, end_ym):
+            month_counts[m] = 0
+    else:
+        sorted_keys = sorted(month_counts.keys())
+        end_ym = sorted_keys[-1]
+        if len(sorted_keys) == 1:
+            end_y, end_m = map(int, end_ym.split("-"))
+            start_y = end_y - 1
+            start_m = end_m
+            start_ym = f"{start_y:04d}-{start_m:02d}"
+        else:
+            start_ym = sorted_keys[0]
+
+        all_months = get_month_range(start_ym, end_ym)
+        for m in all_months:
+            month_counts[m] = month_counts.get(m, 0)
+
+    sorted_months = sorted(month_counts.keys())
+    counts = [month_counts[m] for m in sorted_months]
 
     max_c = max(counts) if max(counts) > 0 else 1
 
@@ -504,11 +535,17 @@ def generate_activity_graph_svg(data):
         y = (height - padding_y) - ((val / max_c) * graph_h)
         points.append((x, y))
 
-    path_d = f"M {points[0][0]},{points[0][1]}"
-    for x, y in points[1:]:
-        path_d += f" L {x:.1f},{y:.1f}"
+    if len(points) == 1:
+        path_d = f"M {points[0][0]:.1f},{points[0][1]:.1f} L {points[0][0] + graph_w:.1f},{points[0][1]:.1f}"
+    else:
+        path_d = f"M {points[0][0]:.1f},{points[0][1]:.1f}"
+        for x, y in points[1:]:
+            path_d += f" L {x:.1f},{y:.1f}"
 
     area_d = path_d + f" L {points[-1][0]:.1f},{height - padding_y} L {padding_x},{height - padding_y} Z"
+
+    start_label = sorted_months[0] if sorted_months else ""
+    end_label = sorted_months[-1] if sorted_months else ""
 
     svg = f"""<svg width="880" height="170" viewBox="0 0 880 170" fill="none" xmlns="http://www.w3.org/2000/svg">
   <style>
@@ -527,7 +564,7 @@ def generate_activity_graph_svg(data):
   </defs>
 
   <rect x="1" y="1" width="878" height="168" rx="8" class="bg border"/>
-  <text x="30" y="25" class="header">Contribution Activity (Last 4 Months)</text>
+  <text x="30" y="25" class="header">Overall Contribution Activity ({start_label} to {end_label})</text>
 
   <path d="{area_d}" class="area" />
   <path d="{path_d}" class="line" />
