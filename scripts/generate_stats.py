@@ -83,6 +83,7 @@ def fetch_data_graphql(token):
         if "data" not in user_data or not user_data["data"]["user"]:
             return None
         user = user_data["data"]["user"]
+        user["yearlyContributions"] = {}
 
     created_at = user.get("createdAt", "2016-01-01T00:00:00Z")
     start_year = int(created_at[:4])
