@@ -15,8 +15,8 @@
   </defs>
 
   <rect x="1" y="1" width="878" height="168" rx="8" class="bg border"/>
-  <text x="30" y="25" class="header">Overall Contribution Activity (2026-08 to 2026-09)</text>
+  <text x="30" y="25" class="header">Overall Contribution Activity (2025-09 to 2026-09)</text>
 
-  <path d="M 30.0,108.33333333333334 L 850.0,25.0 L 850.0,125 L 30,125 Z" class="area" />
-  <path d="M 30.0,108.33333333333334 L 850.0,25.0" class="line" />
+  <path d="M 30.0,125.0 L 98.3,125.0 L 166.7,125.0 L 235.0,125.0 L 303.3,125.0 L 371.7,125.0 L 440.0,125.0 L 508.3,125.0 L 576.7,125.0 L 645.0,125.0 L 713.3,125.0 L 781.7,125.0 L 850.0,25.0 L 850.0,125 L 30,125 Z" class="area" />
+  <path d="M 30.0,125.0 L 98.3,125.0 L 166.7,125.0 L 235.0,125.0 L 303.3,125.0 L 371.7,125.0 L 440.0,125.0 L 508.3,125.0 L 576.7,125.0 L 645.0,125.0 L 713.3,125.0 L 781.7,125.0 L 850.0,25.0" class="line" />
 </svg>

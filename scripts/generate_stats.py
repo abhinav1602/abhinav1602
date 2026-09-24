@@ -83,6 +83,7 @@ def fetch_data_graphql(token):
         if "data" not in user_data or not user_data["data"]["user"]:
             return None
         user = user_data["data"]["user"]
+        user["yearlyContributions"] = {}
 
     created_at = user.get("createdAt", "2016-01-01T00:00:00Z")
     start_year = int(created_at[:4])
@@ -448,6 +449,20 @@ def generate_streak_svg(data):
     return svg
 
 
+def get_month_range(start_ym, end_ym):
+    start_y, start_m = map(int, start_ym.split("-"))
+    end_y, end_m = map(int, end_ym.split("-"))
+    months = []
+    cur_y, cur_m = start_y, start_m
+    while (cur_y < end_y) or (cur_y == end_y and cur_m <= end_m):
+        months.append(f"{cur_y:04d}-{cur_m:02d}")
+        cur_m += 1
+        if cur_m > 12:
+            cur_m = 1
+            cur_y += 1
+    return months
+
+
 def generate_activity_graph_svg(data):
     # Overall monthly / yearly contribution activity graph
     month_counts = {}
@@ -473,13 +488,32 @@ def generate_activity_graph_svg(data):
             m_str = d_str[:7]
             month_counts[m_str] = month_counts.get(m_str, 0) + count
 
+    today_dt = datetime.now(timezone.utc)
+    today_ym = today_dt.strftime("%Y-%m")
+
     if not month_counts:
-        # Fallback monthly points
-        created_year = int(data.get("user_info", {}).get("created_at", "2016-01-01")[:4])
-        current_year = datetime.now(timezone.utc).year
-        for y in range(created_year, current_year + 1):
-            for m in range(1, 13):
-                month_counts[f"{y}-{m:02d}"] = 0
+        # Default 12 months ending at current month
+        end_ym = today_ym
+        end_y, end_m = map(int, end_ym.split("-"))
+        start_y = end_y - 1 if end_m == 12 else end_y - 1
+        start_m = 1 if end_m == 12 else end_m + 1
+        start_ym = f"{start_y:04d}-{start_m:02d}"
+        for m in get_month_range(start_ym, end_ym):
+            month_counts[m] = 0
+    else:
+        sorted_keys = sorted(month_counts.keys())
+        end_ym = sorted_keys[-1]
+        if len(sorted_keys) == 1:
+            end_y, end_m = map(int, end_ym.split("-"))
+            start_y = end_y - 1
+            start_m = end_m
+            start_ym = f"{start_y:04d}-{start_m:02d}"
+        else:
+            start_ym = sorted_keys[0]
+
+        all_months = get_month_range(start_ym, end_ym)
+        for m in all_months:
+            month_counts[m] = month_counts.get(m, 0)
 
     sorted_months = sorted(month_counts.keys())
     counts = [month_counts[m] for m in sorted_months]
@@ -501,9 +535,12 @@ def generate_activity_graph_svg(data):
         y = (height - padding_y) - ((val / max_c) * graph_h)
         points.append((x, y))
 
-    path_d = f"M {points[0][0]},{points[0][1]}"
-    for x, y in points[1:]:
-        path_d += f" L {x:.1f},{y:.1f}"
+    if len(points) == 1:
+        path_d = f"M {points[0][0]:.1f},{points[0][1]:.1f} L {points[0][0] + graph_w:.1f},{points[0][1]:.1f}"
+    else:
+        path_d = f"M {points[0][0]:.1f},{points[0][1]:.1f}"
+        for x, y in points[1:]:
+            path_d += f" L {x:.1f},{y:.1f}"
 
     area_d = path_d + f" L {points[-1][0]:.1f},{height - padding_y} L {padding_x},{height - padding_y} Z"
 
