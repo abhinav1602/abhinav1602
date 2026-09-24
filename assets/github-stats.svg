@@ -38,7 +38,7 @@
     <!-- PRs & Issues -->
     <g transform="translate(0, 125)">
       <text x="0" y="15" class="stat-label">🔀 Pull Requests &amp; Issues:</text>
-      <text x="390" y="15" class="stat-value" text-anchor="end">126 PRs / 18 Issues</text>
+      <text x="390" y="15" class="stat-value" text-anchor="end">0 PRs / 0 Issues</text>
     </g>
   </g>
 </svg>
