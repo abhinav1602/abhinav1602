@@ -15,7 +15,7 @@
   </defs>
 
   <rect x="1" y="1" width="878" height="168" rx="8" class="bg border"/>
-  <text x="30" y="25" class="header">Overall Contribution Activity (2025-10 to 2026-09)</text>
+  <text x="30" y="25" class="header">Overall Contribution Activity (2025-11 to 2026-10)</text>
 
   <path d="M 30.0,125.0 L 104.5,125.0 L 179.1,125.0 L 253.6,125.0 L 328.2,125.0 L 402.7,125.0 L 477.3,125.0 L 551.8,125.0 L 626.4,125.0 L 700.9,125.0 L 775.5,125.0 L 850.0,125.0 L 850.0,125 L 30,125 Z" class="area" />
   <path d="M 30.0,125.0 L 104.5,125.0 L 179.1,125.0 L 253.6,125.0 L 328.2,125.0 L 402.7,125.0 L 477.3,125.0 L 551.8,125.0 L 626.4,125.0 L 700.9,125.0 L 775.5,125.0 L 850.0,125.0" class="line" />
