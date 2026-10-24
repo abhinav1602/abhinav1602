@@ -2,12 +2,16 @@ name: Update Profile Stats Cards
 
 on:
   schedule:
-    - cron: '0 */6 * * *' # Runs every 6 hours
+    - cron: '*/30 * * * *' # Every 30 minutes (GitHub may delay scheduled runs)
   workflow_dispatch:
   push:
     branches:
       - main
       - master
+
+concurrency:
+  group: update-stats
+  cancel-in-progress: false
 
 jobs:
   update-stats:
@@ -25,6 +29,9 @@ jobs:
 
       - name: Generate Stats SVGs
         env:
+          # STATS_TOKEN: a personal access token, so private contributions count.
+          # Falls back to the built-in token (public contributions only) if unset.
+          STATS_TOKEN: ${{ secrets.STATS_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           python scripts/generate_stats.py
