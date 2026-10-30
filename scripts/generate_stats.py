@@ -112,7 +112,6 @@ query($login: String!, $from: DateTime!, $to: DateTime!) {
       totalPullRequestContributions
       totalIssueContributions
       totalRepositoryContributions
-      totalCodeReviewContributions
       restrictedContributionsCount
       contributionCalendar {
         totalContributions
