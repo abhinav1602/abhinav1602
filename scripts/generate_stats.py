@@ -23,6 +23,10 @@ THEME = {
     "line": "#58a6ff",
 }
 
+# Docs/content formats, not languages written as code; a single docs site
+# can otherwise dominate the byte counts.
+EXCLUDED_LANGS = {"MDX", "Markdown"}
+
 LANG_COLORS = {
     "JavaScript": "#f1e05a",
     "Python": "#3572A5",
@@ -397,9 +401,14 @@ def generate_top_langs_svg(data):
     langs = {}
     if "repositories" in data:
         for repo in data["repositories"]["nodes"]:
+            # Forks are mostly someone else's code.
+            if repo.get("isFork"):
+                continue
             if repo.get("languages") and repo["languages"].get("edges"):
                 for edge in repo["languages"]["edges"]:
                     l_name = edge["node"]["name"]
+                    if l_name in EXCLUDED_LANGS:
+                        continue
                     l_size = edge["size"]
                     langs[l_name] = langs.get(l_name, 0) + l_size
     else:
@@ -410,7 +419,7 @@ def generate_top_langs_svg(data):
 
     items_svg = ""
     y_offset = 60
-    bar_width = 230
+    bar_width = 200
 
     for name, size in sorted_langs:
         pct = (size / total_size) * 100
