@@ -2,6 +2,8 @@
 import json
 import os
 import sys
+import time
+import urllib.error
 import urllib.request
 from datetime import datetime, timedelta, timezone
 
@@ -39,100 +41,125 @@ LANG_COLORS = {
 }
 
 
-def fetch_data_graphql(token):
-    user_query = """
-    {
-      user(login: "%s") {
+class GraphQLError(Exception):
+    pass
+
+
+def graphql(token, query, variables=None, attempts=4):
+    # GitHub's GraphQL API can answer 200 with "errors" (e.g. timeouts) and
+    # no data, so treat that as a failure and retry instead of using it.
+    payload = json.dumps({"query": query, "variables": variables or {}}).encode("utf-8")
+    last_err = None
+    for attempt in range(attempts):
+        req = urllib.request.Request(
+            "https://api.github.com/graphql",
+            data=payload,
+            headers={
+                "User-Agent": "Mozilla/5.0",
+                "Content-Type": "application/json",
+                "Authorization": f"bearer {token}",
+            },
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=60) as res:
+                body = json.loads(res.read().decode())
+            if body.get("errors") or not body.get("data"):
+                raise GraphQLError(json.dumps(body.get("errors") or body)[:500])
+            return body["data"]
+        except (GraphQLError, urllib.error.URLError, TimeoutError) as e:
+            last_err = e
+            print(f"GraphQL attempt {attempt + 1}/{attempts} failed: {e}")
+            time.sleep(5 * (attempt + 1))
+    raise GraphQLError(f"GraphQL request failed after {attempts} attempts: {last_err}")
+
+
+USER_QUERY = """
+query($login: String!, $cursor: String) {
+  user(login: $login) {
+    name
+    login
+    createdAt
+    followers { totalCount }
+    following { totalCount }
+    starredRepositories { totalCount }
+    repositories(first: 100, after: $cursor, ownerAffiliations: OWNER, privacy: PUBLIC) {
+      totalCount
+      pageInfo { hasNextPage endCursor }
+      nodes {
         name
-        login
-        createdAt
-        followers { totalCount }
-        following { totalCount }
-        starredRepositories { totalCount }
-        repositories(first: 100, ownerAffiliations: OWNER) {
-          totalCount
-          nodes {
-            name
-            stargazerCount
-            forkCount
-            isFork
-            primaryLanguage { name color }
-            languages(first: 10, orderBy: {field: SIZE, direction: DESC}) {
-              edges {
-                size
-                node { name color }
-              }
-            }
+        stargazerCount
+        forkCount
+        isFork
+        primaryLanguage { name color }
+        languages(first: 10, orderBy: {field: SIZE, direction: DESC}) {
+          edges {
+            size
+            node { name color }
           }
         }
       }
     }
-    """ % USERNAME
+  }
+}
+"""
 
-    req = urllib.request.Request(
-        "https://api.github.com/graphql",
-        data=json.dumps({"query": user_query}).encode("utf-8"),
-        headers={
-            "User-Agent": "Mozilla/5.0",
-            "Content-Type": "application/json",
-            "Authorization": f"bearer {token}",
-        },
-    )
-    with urllib.request.urlopen(req) as res:
-        user_data = json.loads(res.read().decode())
-        if "data" not in user_data or not user_data["data"]["user"]:
-            return None
-        user = user_data["data"]["user"]
-        user["yearlyContributions"] = {}
-
-    created_at = user.get("createdAt", "2016-01-01T00:00:00Z")
-    start_year = int(created_at[:4])
-    current_year = datetime.now(timezone.utc).year
-
-    year_queries = []
-    for year in range(start_year, current_year + 1):
-        from_date = f"{year}-01-01T00:00:00Z"
-        to_date = f"{year}-12-31T23:59:59Z"
-        year_queries.append(f"""
-        year_{year}: contributionsCollection(from: "{from_date}", to: "{to_date}") {{
-          totalCommitContributions
-          totalPullRequestContributions
-          totalIssueContributions
-          totalRepositoryContributions
-          totalCodeReviewContributions
-          contributionCalendar {{
-            totalContributions
-            weeks {{
-              contributionDays {{
-                contributionCount
-                date
-              }}
-            }}
-          }}
-        }}
-        """)
-
-    multi_year_query = """
-    {
-      user(login: "%s") {
-        %s
+YEAR_QUERY = """
+query($login: String!, $from: DateTime!, $to: DateTime!) {
+  user(login: $login) {
+    contributionsCollection(from: $from, to: $to) {
+      totalCommitContributions
+      totalPullRequestContributions
+      totalIssueContributions
+      totalRepositoryContributions
+      totalCodeReviewContributions
+      restrictedContributionsCount
+      contributionCalendar {
+        totalContributions
+        weeks {
+          contributionDays {
+            contributionCount
+            date
+          }
+        }
       }
     }
-    """ % (USERNAME, "\n".join(year_queries))
+  }
+}
+"""
 
-    req2 = urllib.request.Request(
-        "https://api.github.com/graphql",
-        data=json.dumps({"query": multi_year_query}).encode("utf-8"),
-        headers={
-            "User-Agent": "Mozilla/5.0",
-            "Content-Type": "application/json",
-            "Authorization": f"bearer {token}",
-        },
-    )
-    with urllib.request.urlopen(req2) as res2:
-        year_data = json.loads(res2.read().decode())
-        if "data" in year_data and year_data["data"]["user"]:
-            user["yearlyContributions"] = year_data["data"]["user"]
+
+def fetch_data_graphql(token):
+    user = None
+    nodes = []
+    cursor = None
+    while True:
+        data = graphql(token, USER_QUERY, {"login": USERNAME, "cursor": cursor})
+        if not data.get("user"):
+            raise GraphQLError(f"User {USERNAME} not found")
+        page = data["user"]["repositories"]
+        nodes.extend(page["nodes"])
+        if user is None:
+            user = data["user"]
+        if not page["pageInfo"]["hasNextPage"]:
+            break
+        cursor = page["pageInfo"]["endCursor"]
+    user["repositories"]["nodes"] = nodes
+
+    # One request per year: a single query with every year aliased in it is
+    # heavy enough to time out, which used to silently zero out every stat.
+    created_at = datetime.strptime(user["createdAt"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+    now = datetime.now(timezone.utc)
+    yearly = {}
+    for year in range(created_at.year, now.year + 1):
+        from_dt = max(created_at, datetime(year, 1, 1, tzinfo=timezone.utc))
+        to_dt = min(now, datetime(year, 12, 31, 23, 59, 59, tzinfo=timezone.utc))
+        data = graphql(token, YEAR_QUERY, {
+            "login": USERNAME,
+            "from": from_dt.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "to": to_dt.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        })
+        yearly[f"year_{year}"] = data["user"]["contributionsCollection"]
+    user["yearlyContributions"] = yearly
 
     return user
 
@@ -573,17 +600,17 @@ def generate_activity_graph_svg(data):
 
 
 def main():
-    token = os.environ.get("GITHUB_TOKEN", "")
-    data = None
+    token = os.environ.get("STATS_TOKEN") or os.environ.get("GITHUB_TOKEN", "")
     if token:
+        print("Fetching data using GraphQL API...")
         try:
-            print("Fetching data using GraphQL API...")
             data = fetch_data_graphql(token)
-        except Exception as e:
-            print(f"GraphQL fetch failed: {e}")
-
-    if not data:
-        print("Fetching data using REST API fallback...")
+        except GraphQLError as e:
+            # Keep the last good SVGs instead of committing a card full of zeros.
+            print(f"GraphQL fetch failed, leaving existing stats untouched: {e}")
+            sys.exit(1)
+    else:
+        print("No token set, fetching data using REST API fallback...")
         data = fetch_data_rest()
 
     os.makedirs("assets", exist_ok=True)
