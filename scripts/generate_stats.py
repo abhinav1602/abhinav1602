@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import json
 import os
+import re
 import sys
 import time
 import urllib.error
@@ -45,7 +46,7 @@ class GraphQLError(Exception):
     pass
 
 
-def graphql(token, query, variables=None, attempts=4):
+def graphql(token, query, variables=None, attempts=3):
     # GitHub's GraphQL API can answer 200 with "errors" (e.g. timeouts) and
     # no data, so treat that as a failure and retry instead of using it.
     payload = json.dumps({"query": query, "variables": variables or {}}).encode("utf-8")
@@ -164,65 +165,140 @@ def fetch_data_graphql(token):
     return user
 
 
-def fetch_data_rest():
-    headers = {"User-Agent": "Mozilla/5.0"}
-    token = os.environ.get("GITHUB_TOKEN", "")
-    if token:
-        headers["Authorization"] = f"token {token}"
+def annotate(level, message):
+    # Workflow commands show up as annotations on the run page (and through
+    # the checks API), so failures are visible without digging through logs.
+    message = str(message).replace("%", "%25").replace("\r", "").replace("\n", "%0A")
+    print(f"::{level}::{message}")
 
-    def get_json(url):
+
+def http_get(url, headers, attempts=3):
+    last_err = None
+    for attempt in range(attempts):
         try:
             req = urllib.request.Request(url, headers=headers)
-            with urllib.request.urlopen(req) as res:
-                return json.loads(res.read().decode())
-        except Exception:
-            return {}
+            with urllib.request.urlopen(req, timeout=60) as res:
+                return res.read().decode("utf-8")
+        except (urllib.error.URLError, TimeoutError) as e:
+            last_err = e
+            time.sleep(3 * (attempt + 1))
+    raise RuntimeError(f"GET {url} failed: {last_err}")
 
-    user_info = get_json(f"https://api.github.com/users/{USERNAME}")
-    repos_info = get_json(f"https://api.github.com/users/{USERNAME}/repos?per_page=100")
-    if not isinstance(repos_info, list):
-        repos_info = []
 
-    total_stars = 0
-    total_forks = 0
-    lang_sizes = {}
+def parse_contribution_calendar(html, from_date, to_date):
+    # Day cells carry data-date and an id; the count lives in the matching
+    # <tool-tip for="id">, e.g. "3 contributions on October 1st." Older markup
+    # put it in data-count instead.
+    tooltips = {}
+    for m in re.finditer(r'<tool-tip\b[^>]*\bfor="([^"]+)"[^>]*>(.*?)</tool-tip>', html, re.S):
+        tooltips[m.group(1)] = m.group(2)
 
-    for r in repos_info:
-        total_stars += r.get("stargazers_count", 0)
-        total_forks += r.get("forks_count", 0)
-        lang = r.get("language")
-        if lang:
-            lang_sizes[lang] = lang_sizes.get(lang, 0) + 1
+    days = {}
+    for m in re.finditer(r"<td\b[^>]*>", html):
+        attrs = dict(re.findall(r'([\w:-]+)="([^"]*)"', m.group(0)))
+        d_str = attrs.get("data-date")
+        if not d_str or not (from_date <= d_str <= to_date):
+            continue
+        if attrs.get("data-count", "").isdigit():
+            count = int(attrs["data-count"])
+        else:
+            text = tooltips.get(attrs.get("id", ""), "")
+            cm = re.search(r"(No|[\d,]+) contributions?", text)
+            if cm:
+                count = 0 if cm.group(1) == "No" else int(cm.group(1).replace(",", ""))
+            else:
+                # No count available: a non-zero level still means at least one.
+                count = 1 if attrs.get("data-level", "0") not in ("", "0") else 0
+        days[d_str] = count
 
-    commits_data = get_json(f"https://api.github.com/search/commits?q=author:{USERNAME}")
-    prs_data = get_json(f"https://api.github.com/search/issues?q=author:{USERNAME}+type:pr")
-    issues_data = get_json(f"https://api.github.com/search/issues?q=author:{USERNAME}+type:issue")
+    if not days:
+        raise RuntimeError(f"No contribution days found for {from_date}..{to_date}")
+    return days
 
-    commits = commits_data.get("total_count", 0)
-    prs = prs_data.get("total_count", 0)
-    issues = issues_data.get("total_count", 0)
-    total_contributions = commits + prs + issues
 
-    events = get_json(f"https://api.github.com/users/{USERNAME}/events/public?per_page=100")
-    daily_events = {}
-    if isinstance(events, list):
-        for e in events:
-            d_str = e.get("created_at", "")[:10]
-            if d_str:
-                daily_events[d_str] = daily_events.get(d_str, 0) + 1
+def fetch_data_fallback(token):
+    # Used when GraphQL fails: REST for repos and totals, and the public
+    # contribution calendar (the same one shown on the profile) for daily counts.
+    api_headers = {"User-Agent": "Mozilla/5.0", "Accept": "application/vnd.github+json"}
+    if token:
+        api_headers["Authorization"] = f"token {token}"
+
+    def api(path):
+        return json.loads(http_get(f"https://api.github.com{path}", api_headers))
+
+    user_info = api(f"/users/{USERNAME}")
+
+    repos = []
+    page = 1
+    while True:
+        batch = api(f"/users/{USERNAME}/repos?type=owner&per_page=100&page={page}")
+        repos.extend(batch)
+        if len(batch) < 100:
+            break
+        page += 1
+
+    nodes = []
+    for r in repos:
+        edges = []
+        try:
+            for name, size in api(f"/repos/{USERNAME}/{r['name']}/languages").items():
+                edges.append({"size": size, "node": {"name": name, "color": None}})
+        except Exception as e:
+            print(f"Languages for {r['name']} unavailable: {e}")
+        nodes.append({
+            "name": r["name"],
+            "stargazerCount": r.get("stargazers_count", 0),
+            "forkCount": r.get("forks_count", 0),
+            "isFork": r.get("fork", False),
+            "languages": {"edges": edges},
+        })
+
+    def search_count(kind, q):
+        try:
+            return api(f"/search/{kind}?q={q}&per_page=1").get("total_count", 0)
+        except Exception as e:
+            print(f"Search {kind} '{q}' failed: {e}")
+            return 0
+
+    html_headers = {"User-Agent": "Mozilla/5.0", "Accept": "text/html"}
+    created_at = datetime.strptime(user_info["created_at"], "%Y-%m-%dT%H:%M:%SZ").date()
+    today = datetime.now(timezone.utc).date()
+    yearly = {}
+    for year in range(created_at.year, today.year + 1):
+        from_date = max(created_at, datetime(year, 1, 1).date()).isoformat()
+        to_date = min(today, datetime(year, 12, 31).date()).isoformat()
+        html = http_get(
+            f"https://github.com/users/{USERNAME}/contributions?from={from_date}&to={to_date}",
+            html_headers,
+        )
+        days = parse_contribution_calendar(html, from_date, to_date)
+        yearly[f"year_{year}"] = {
+            "contributionCalendar": {
+                "totalContributions": sum(days.values()),
+                "weeks": [{"contributionDays": [
+                    {"date": d, "contributionCount": c} for d, c in sorted(days.items())
+                ]}],
+            },
+        }
 
     return {
-        "user_info": user_info,
-        "repos_info": repos_info,
-        "total_stars": total_stars,
-        "total_forks": total_forks,
-        "lang_sizes": lang_sizes,
-        "commits": commits,
-        "prs": prs,
-        "issues": issues,
-        "total_contributions": total_contributions,
-        "daily_events": daily_events,
+        "login": USERNAME,
+        "createdAt": user_info["created_at"],
+        "repositories": {"totalCount": user_info.get("public_repos", len(repos)), "nodes": nodes},
+        "yearlyContributions": yearly,
+        "totals": {
+            "commits": search_count("commits", f"author:{USERNAME}"),
+            "prs": search_count("issues", f"author:{USERNAME}+type:pr"),
+            "issues": search_count("issues", f"author:{USERNAME}+type:issue"),
+        },
     }
+
+
+def total_contributions(data):
+    return sum(
+        (yc or {}).get("contributionCalendar", {}).get("totalContributions", 0)
+        for yc in data.get("yearlyContributions", {}).values()
+    )
 
 
 def generate_stats_svg(data):
@@ -243,6 +319,11 @@ def generate_stats_svg(data):
             prs += yc.get("totalPullRequestContributions", 0)
             issues += yc.get("totalIssueContributions", 0)
             contributions += yc.get("contributionCalendar", {}).get("totalContributions", 0)
+
+        if data.get("totals"):
+            commits = data["totals"]["commits"]
+            prs = data["totals"]["prs"]
+            issues = data["totals"]["issues"]
 
     elif "repositories" in data:
         total_repos = data["repositories"]["totalCount"]
@@ -600,18 +681,34 @@ def generate_activity_graph_svg(data):
 
 
 def main():
-    token = os.environ.get("STATS_TOKEN") or os.environ.get("GITHUB_TOKEN", "")
-    if token:
-        print("Fetching data using GraphQL API...")
+    tokens = []
+    for name in ("STATS_TOKEN", "GITHUB_TOKEN"):
+        value = os.environ.get(name, "")
+        if value and value not in [t for _, t in tokens]:
+            tokens.append((name, value))
+
+    data = None
+    for name, token in tokens:
+        print(f"Fetching data using GraphQL API with {name}...")
         try:
             data = fetch_data_graphql(token)
+            break
         except GraphQLError as e:
-            # Keep the last good SVGs instead of committing a card full of zeros.
-            print(f"GraphQL fetch failed, leaving existing stats untouched: {e}")
+            annotate("warning", f"GraphQL with {name} failed: {e}")
+
+    if data is None:
+        print("Fetching data from REST API and the public contribution calendar...")
+        try:
+            data = fetch_data_fallback(os.environ.get("GITHUB_TOKEN", ""))
+        except Exception as e:
+            annotate("error", f"Fallback fetch failed, leaving existing stats untouched: {e}")
             sys.exit(1)
-    else:
-        print("No token set, fetching data using REST API fallback...")
-        data = fetch_data_rest()
+
+    if total_contributions(data) == 0:
+        # A result of zero means the data is missing, not that there was no
+        # activity; keep the last good cards instead.
+        annotate("error", "Fetched 0 total contributions, leaving existing stats untouched")
+        sys.exit(1)
 
     os.makedirs("assets", exist_ok=True)
 
