@@ -108,6 +108,28 @@ query($login: String!, $cursor: String) {
 }
 """
 
+CONTRIBUTED_QUERY = """
+query($login: String!) {
+  user(login: $login) {
+    repositoriesContributedTo(
+      first: 100,
+      includeUserRepositories: false,
+      contributionTypes: [COMMIT, PULL_REQUEST, PULL_REQUEST_REVIEW, REPOSITORY]
+    ) {
+      nodes {
+        nameWithOwner
+        languages(first: 10, orderBy: {field: SIZE, direction: DESC}) {
+          edges {
+            size
+            node { name color }
+          }
+        }
+      }
+    }
+  }
+}
+"""
+
 YEAR_QUERY = """
 query($login: String!, $from: DateTime!, $to: DateTime!) {
   user(login: $login) {
@@ -148,6 +170,14 @@ def fetch_data_graphql(token):
             break
         cursor = page["pageInfo"]["endCursor"]
     user["repositories"]["nodes"] = nodes
+
+    # Repos owned by others that the user contributed to, for the languages
+    # card. Optional: if this query fails the card just uses owned repos.
+    try:
+        data = graphql(token, CONTRIBUTED_QUERY, {"login": USERNAME})
+        user["contributedRepos"] = data["user"]["repositoriesContributedTo"]["nodes"]
+    except GraphQLError as e:
+        annotate("warning", f"Contributed repositories unavailable: {e}")
 
     # One request per year: a single query with every year aliased in it is
     # heavy enough to time out, which used to silently zero out every stat.
@@ -400,10 +430,7 @@ def generate_stats_svg(data):
 def generate_top_langs_svg(data):
     langs = {}
     if "repositories" in data:
-        for repo in data["repositories"]["nodes"]:
-            # Forks are mostly someone else's code.
-            if repo.get("isFork"):
-                continue
+        for repo in data["repositories"]["nodes"] + data.get("contributedRepos", []):
             if repo.get("languages") and repo["languages"].get("edges"):
                 for edge in repo["languages"]["edges"]:
                     l_name = edge["node"]["name"]
